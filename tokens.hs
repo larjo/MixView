@@ -10,20 +10,16 @@ import Data.Text.Encoding as E
 --tokens
 data Token = Id String | Len Int | Sub String | RawData B.ByteString
 
-decode s = if B.length s /= 8
-              && B.length s /= 12 
-              && B.length s /= 32 
-              && B.length s /= 56 
-              && B.length s /= 86 
+decode s = if B.length s `notElem` [8, 12, 32, 56, 86]
               then show $ T.init $ E.decodeUtf16LEWith onerr s
               else ""
            where onerr _ _ = Nothing
            
 instance Show Token where
    show (Id s) = "Id " ++ s
-   show (Len i) = "Len " ++ (show i)
+   show (Len i) = "Len " ++ show i
    show (Sub s) = "Sub " ++ s
-   show (RawData d) = "Data" ++ (decode d)
+   show (RawData d) = "Data" ++ decode d
    
 --parse tokens
 parseFourCC :: Get String
@@ -39,7 +35,7 @@ parseRawData len = do
   return rawdata
 
 parseList = do
-  l <- parseInt  
+  l <- parseInt
   s <- parseFourCC
   r <- parseTokens
   return (Len l : Sub s : r)  
