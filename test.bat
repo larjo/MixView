@@ -1,1 +1,1 @@
-main.exe < playlist.mmp
+tokens.exe < playlist.mmp
