@@ -1,3 +1,6 @@
+module RiffTokens
+(parseTokens) where
+
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as B
@@ -36,23 +39,23 @@ parseRawData len = do
 
 parseList :: Get [Token] 
 parseList = do
-  l <- parseInt
-  s <- parseFourCC
-  r <- parseTokens
-  return (Len l : Sub s : r)  
+  len <- parseInt
+  sub <- parseFourCC
+  rest <- parseTokens
+  return (Len len : Sub sub : rest)  
 
 parseData :: Get [Token] 
 parseData = do
-  l <- parseInt 
-  d <- parseRawData l
-  r <- parseTokens
-  return (Len l : RawData d : r)
+  len <- parseInt 
+  raw <- parseRawData len
+  rest <- parseTokens
+  return (Len len : RawData raw : rest)
 
 parseChunks :: Get [Token]  
 parseChunks = do
-  i <- parseFourCC
-  r <- parseChunks' i
-  return (Id i : r)
+  id <- parseFourCC
+  rest <- parseChunks' id
+  return (Id id : rest)
   where
     parseChunks' "RIFF" = parseList
     parseChunks' "LIST" = parseList
