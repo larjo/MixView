@@ -19,7 +19,7 @@ instance Show Token where
    show (Id s) = "Id " ++ s
    show (Len i) = "Len " ++ show i
    show (Sub s) = "Sub " ++ s
-   show (RawData d) = "Data" ++ decode d
+   show (RawData d) = "Data " ++ decode d
    
 --parse tokens
 parseFourCC :: Get String
@@ -34,31 +34,36 @@ parseRawData len = do
   skip $ len `mod` 2 -- skip one byte padding if length is odd
   return rawdata
 
+parseList :: Get [Token] 
 parseList = do
   l <- parseInt
   s <- parseFourCC
   r <- parseTokens
   return (Len l : Sub s : r)  
 
+parseData :: Get [Token] 
 parseData = do
   l <- parseInt 
   d <- parseRawData l
   r <- parseTokens
   return (Len l : RawData d : r)
-  
-parseChunks "RIFF" = parseList
-parseChunks "LIST" = parseList
-parseChunks _ = parseData
+
+parseChunks :: Get [Token]  
+parseChunks = do
+  i <- parseFourCC
+  r <- parseChunks' i
+  return (Id i : r)
+  where
+    parseChunks' "RIFF" = parseList
+    parseChunks' "LIST" = parseList
+    parseChunks' _ = parseData
   
 parseTokens :: Get [Token]
 parseTokens = do
   empty <- isEmpty
   if empty
      then return []
-     else do
-        i <- parseFourCC
-        r <- parseChunks i
-        return (Id i : r)
+     else parseChunks
 
 main :: IO ()
 main = BL.getContents >>= mapM_ print . runGet parseTokens
