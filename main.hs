@@ -5,7 +5,7 @@ import Data.Binary.Get
 import Data.Word
 import Control.Applicative
 import RiffTokens
-  
+
 -- The datastructure that represents a playlist in Riff-format
 type Format = String
 type Id = String
@@ -17,18 +17,18 @@ data Riff = Riff Chunks
 
 -- functions for pretty printing the playlist
 instance Show Chunk where
-   show (Data i d) = "(" ++ i ++ ")"
-   show cs = show cs
+    show (Data i d) = "(" ++ i ++ ")"
+    show cs = show cs
 
 instance Show Chunks where
-   show (Chunks f c) = f ++ ":" ++ (show c)
-  
+    show (Chunks f c) = f ++ ":" ++ (show c)
+
 instance Show Riff where
-   show (Riff cs) = show cs
-  
+    show (Riff cs) = show cs
+
 main :: IO ()
 main = BL.getContents >>= print . runGet parseTokens
-    
+
 -- test = show r 
   -- where
     -- d = B8.pack "data"
