@@ -5,7 +5,6 @@ module RiffTokens
     ) where
 
 import qualified Data.ByteString.Char8 as B8
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString as B
 import Data.Binary.Get
 import Data.Word
@@ -38,11 +37,11 @@ parseString len = B8.unpack <$> getByteString len
 parseInt:: Get Int
 parseInt = fromIntegral <$> getWord32le
 
-parseRawData :: Int -> Get B.ByteString
-parseRawData len = do
-    rawdata <- getByteString len
+parseByteString :: Int -> Get B.ByteString
+parseByteString len = do
+    bs <- getByteString len
     skip $ len `mod` 2 -- skip one byte of padding if the length is odd
-    return rawdata
+    return bs
 
 parseList :: Id -> Get Token
 parseList id = do
@@ -53,7 +52,7 @@ parseList id = do
 parseData :: Id -> Get Token
 parseData id = do
     len <- parseInt
-    raw <- parseRawData len
+    raw <- parseByteString len
     return (Data id len raw)
 
 parseToken :: Get Token
