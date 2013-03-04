@@ -1,5 +1,8 @@
 module RiffTokens
-    ( parseTokens ) where
+    ( 
+      Token (Data, List)
+    , parseTokens
+    ) where
 
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as BL
@@ -11,23 +14,26 @@ import Data.Text as T
 import Data.Text.Encoding as E
 
 --tokens
-data Token = Id String | Len Int | Sub String | RawData B.ByteString
+type Id = String
+type Len = Int
+type Format = String
+type RawData = B.ByteString
 
-showRaw s = if B.length s `notElem` [8, 12, 32, 56, 86]
-            then show $ T.init $ E.decodeUtf16LEWith onerr s
-            else ""
-          where 
-            onerr _ _ = Nothing
+-- flat structure
+data Token = Data Id Len RawData
+           | List Id Len Format deriving (Show)
 
-instance Show Token where
-    show (Id s) = "Id " ++ s
-    show (Len i) = "Len " ++ show i
-    show (Sub s) = "Sub " ++ s
-    show (RawData d) = "Data " ++ showRaw d
+-- tree structure
+--data Chunk = List Id Format [Chunk]
+--           | Data Id RawData
+
+showRaw = show . T.init . E.decodeUtf16LEWith onerr
+        where
+          onerr _ _ = Nothing
 
 --parse tokens
-parseFourCC :: Get String
-parseFourCC = B8.unpack <$> getByteString 4
+parseString :: Int -> Get String
+parseString len = B8.unpack <$> getByteString len
 
 parseInt:: Get Int
 parseInt = fromIntegral <$> getWord32le
@@ -38,34 +44,31 @@ parseRawData len = do
     skip $ len `mod` 2 -- skip one byte of padding if the length is odd
     return rawdata
 
-parseList :: Get [Token]
-parseList = do
+parseList :: Id -> Get Token
+parseList id = do
     len <- parseInt
-    sub <- parseFourCC
-    rest <- parseTokens
-    return (Len len : Sub sub : rest)  
+    format <- parseString 4
+    return (List id len format)
 
-parseData :: Get [Token]
-parseData = do
+parseData :: Id -> Get Token
+parseData id = do
     len <- parseInt
     raw <- parseRawData len
-    rest <- parseTokens
-    return (Len len : RawData raw : rest)
+    return (Data id len raw)
 
-parseChunks :: Get [Token]
-parseChunks = do
-    id <- parseFourCC
-    rest <- parseChunks' id
-    return (Id id : rest)
-  where
-    parseChunks' "RIFF" = parseList
-    parseChunks' "LIST" = parseList
-    parseChunks' _ = parseData
+parseToken :: Get Token
+parseToken = do
+    id <- parseString 4
+    case id of
+        "RIFF" -> parseList id
+        "LIST" -> parseList id
+        id     -> parseData id
 
 parseTokens :: Get [Token]
 parseTokens = do
     empty <- isEmpty
     if empty
         then return []
-        else parseChunks
-
+        else do c <- parseToken
+                cs <- parseTokens
+                return (c : cs)
