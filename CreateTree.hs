@@ -9,7 +9,7 @@ type Id = String
 type Len = Int
 type Format = String
 type RawData = ByteString
-                                     
+
 data Chunk = Chunks Id Format [Chunk]
            | RiffData Id RawData
 

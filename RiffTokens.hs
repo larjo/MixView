@@ -38,7 +38,7 @@ parseData = do
     len <- parseInt
     raw <- parseByteString len
     return (Data id len raw)
-    
+
 parseList :: Get Token
 parseList = do
     id <- parseFourCC
@@ -47,12 +47,11 @@ parseList = do
     return (List id (len - 4) format)
 
 parseToken :: Get Token
-parseToken = do
-    id <- lookAhead $ parseFourCC
-    case id of
-        "RIFF" -> parseList
-        "LIST" -> parseList
-        _      -> parseData
+parseToken = lookAhead parseFourCC >>= parseToken'
+  where
+    parseToken' "RIFF" = parseList
+    parseToken' "LIST" = parseList
+    parseToken' _ = parseData
 
 -- parse a list of tokens
 parseTokens :: Get [Token]
