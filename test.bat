@@ -1,1 +1,1 @@
-tokens.exe < playlist.mmp
+runhaskell main < playlist.mmp

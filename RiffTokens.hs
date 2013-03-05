@@ -4,70 +4,56 @@ module RiffTokens
     , parseTokens
     ) where
 
-import qualified Data.ByteString.Char8 as B8
-import qualified Data.ByteString as B
+import Data.ByteString (ByteString)
+import Data.ByteString.Char8 (unpack)
 import Data.Binary.Get
-import Data.Word
 import Control.Applicative
-import Data.Text as T
-import Data.Text.Encoding as E
+import Control.Monad.Loops (whileM) -- requires "cabal install monad.loops"
 
---tokens
 type Id = String
 type Len = Int
 type Format = String
-type RawData = B.ByteString
+type RawData = ByteString
 
--- flat structure
 data Token = Data Id Len RawData
-           | List Id Len Format deriving (Show)
+           | List Id Len Format
 
--- tree structure
---data Chunk = List Id Format [Chunk]
---           | Data Id RawData
-
-showRaw = show . T.init . E.decodeUtf16LEWith onerr
-        where
-          onerr _ _ = Nothing
-
---parse tokens
-parseString :: Int -> Get String
-parseString len = B8.unpack <$> getByteString len
+-- parse binary
+parseFourCC :: Get String
+parseFourCC = unpack <$> getByteString 4
 
 parseInt:: Get Int
 parseInt = fromIntegral <$> getWord32le
 
-parseByteString :: Int -> Get B.ByteString
+parseByteString :: Int -> Get ByteString
 parseByteString len = do
     bs <- getByteString len
     skip $ len `mod` 2 -- skip one byte of padding if the length is odd
     return bs
 
-parseList :: Id -> Get Token
-parseList id = do
-    len <- parseInt
-    format <- parseString 4
-    return (List id len format)
-
-parseData :: Id -> Get Token
-parseData id = do
+-- parse a token
+parseData :: Get Token
+parseData = do
+    id <- parseFourCC
     len <- parseInt
     raw <- parseByteString len
     return (Data id len raw)
+    
+parseList :: Get Token
+parseList = do
+    id <- parseFourCC
+    len <- parseInt
+    format <- parseFourCC
+    return (List id (len - 4) format)
 
 parseToken :: Get Token
 parseToken = do
-    id <- parseString 4
+    id <- lookAhead $ parseFourCC
     case id of
-        "RIFF" -> parseList id
-        "LIST" -> parseList id
-        id     -> parseData id
+        "RIFF" -> parseList
+        "LIST" -> parseList
+        _      -> parseData
 
+-- parse a list of tokens
 parseTokens :: Get [Token]
-parseTokens = do
-    empty <- isEmpty
-    if empty
-        then return []
-        else do c <- parseToken
-                cs <- parseTokens
-                return (c : cs)
+parseTokens = whileM (not <$> isEmpty) parseToken
