@@ -47,7 +47,7 @@ parseList = do
     return (List id (len - 4) format)
 
 parseToken :: Get Token
-parseToken = lookAhead parseFourCC >>= parseToken'
+parseToken = parseToken' =<< lookAhead parseFourCC
   where
     parseToken' "RIFF" = parseList
     parseToken' "LIST" = parseList
@@ -56,3 +56,4 @@ parseToken = lookAhead parseFourCC >>= parseToken'
 -- parse a list of tokens
 parseTokens :: Get [Token]
 parseTokens = whileM (not <$> isEmpty) parseToken
+
