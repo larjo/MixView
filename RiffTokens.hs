@@ -8,7 +8,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (unpack)
 import Data.Binary.Get
 import Control.Applicative
-import Control.Monad.Loops (whileM) -- requires "cabal install monad.loops"
+import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
 
 type Id = String
 type Len = Int
