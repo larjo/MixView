@@ -11,15 +11,29 @@ type Len = Int
 type Format = String
 type RawData = ByteString
 
-data Chunk = Chunks Id Format [Chunk]
-           | RiffData Id RawData
+data Chunk = List Format [Chunk]
+           | Data Id RawData
+data Riff = Riff Format [Chunk]
 
-createTree :: [Token] -> Chunk
-createTree _ = Chunks "RIFF" "FMTT" [RiffData "TTTT" (pack "hej"),Chunks "LIST" "XXXX" [],RiffData "UUUU" (pack "hopp")]
+createRiff :: RiffTokens -> Riff
+createRiff (RiffTokens len format tokens) = Riff format (createChunks len tokens)
 
-showTree :: Chunk -> String
-showTree (Chunks i f cs) = i ++ ":" ++ f ++ "(" ++ (intercalate "," $ map showTree cs) ++ ")"
-showTree (RiffData i d) = i
+createChunks :: Int -> [Token] -> ([Token], [Chunk])
+createChunks len (t@DataToken id dat : rest)
+    | len > 0 = Data id dat : createChunks (len - tokenLength t)
+    | otherwise = []
+createChunks len (t@ListToken listlen format : rest)
+    | len > 0 = List format (createChunks listlen rest) : createChunks (len - tokenlength t)   
+
+showRiff :: Riff -> String
+showRiff (Riff format cs) = "RIFF:" ++ format ++ showChunks cs
+
+showChunks :: [Chunk] -> String
+showChunks chunks = "(" ++ intercalate "," (map showChunk chunks) ++ ")"
+
+showChunk :: Chunk -> String
+showChunk (List format cs) = "LIST:" ++ format ++ showChunks cs
+showChunk (Data i d) = i
 
 main :: IO ()
-main = BL.getContents >>= putStrLn . showTree . createTree . runGet parseTokens
+main = BL.getContents >>= putStrLn . showRiff . createRiff . runGet parseRiffTokens
