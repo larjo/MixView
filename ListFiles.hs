@@ -9,8 +9,11 @@ getTokens :: RiffFile -> [Token]
 getTokens (RiffFile _ ts) = ts
 
 printTRKF :: Token -> IO ()
-printTRKF (DataToken ("TRKF", _, d)) = putStrLn $ showRaw d
-    where showRaw = T.unpack . T.init . decodeUtf16LE
+printTRKF (DataToken ("TRKF", d)) =
+    putStrLn $ showRaw d
+  where 
+    showRaw = T.unpack . T.init . decodeUtf16LE
+
 printTRKF _ = return ()
 
 main :: IO ()

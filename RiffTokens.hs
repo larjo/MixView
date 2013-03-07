@@ -9,7 +9,7 @@ module RiffTokens
     , listLength
     ) where
 
-import Data.ByteString (ByteString)
+import qualified Data.ByteString as B
 import Data.ByteString.Char8 (unpack)
 import Data.Binary.Get
 import Control.Applicative
@@ -18,10 +18,10 @@ import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
 type Id = String
 type Len = Int
 type Format = String
-type RawData = ByteString
+type RawData = B.ByteString
 
 type ListInfo = (Len, Format)
-type DataInfo = (Id, Len, RawData)
+type DataInfo = (Id, RawData)
 
 data Token = DataToken DataInfo
            | ListToken ListInfo
@@ -34,7 +34,7 @@ parseFourCC = unpack <$> getByteString 4
 parseInt:: Get Int
 parseInt = fromIntegral <$> getWord32le
 
-parseByteString :: Int -> Get ByteString
+parseByteString :: Int -> Get B.ByteString
 parseByteString len = do
     bs <- getByteString len
     skip $ len `mod` 2 -- skip one byte of padding if the length is odd
@@ -54,7 +54,7 @@ parseDataInfo = do
     ident <- parseFourCC
     len <- parseInt
     raw <- parseByteString len
-    return (ident, len, raw)
+    return (ident, raw)
 
 -- parse Token
 parseToken :: Get Token
@@ -73,7 +73,9 @@ parseRiffFile = RiffFile <$> parseListInfo <*> parseTokens
 
 -- calculate the length of the surrounding block
 dataLength :: DataInfo -> Int
-dataLength (_, len, _) = len + 8
+dataLength (_, rawData) = len + len `mod` 2 + 8
+                        where
+                          len = B.length rawData
 
 listLength :: ListInfo -> Int
 listLength (len, _) = len + 12

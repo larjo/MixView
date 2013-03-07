@@ -7,7 +7,7 @@ showListInfo :: String -> ListInfo -> String
 showListInfo i (l, f) = i ++ ":" ++ f ++ "(" ++ show l ++ ")"
 
 showDataInfo :: DataInfo -> String
-showDataInfo (i, l, _) = i ++ "(" ++ show l ++ ")"
+showDataInfo d@(i, _) = i ++ "(" ++ show (dataLength d) ++ ")"
 
 showToken :: Token -> String
 showToken (DataToken x) = showDataInfo x
