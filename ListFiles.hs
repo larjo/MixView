@@ -5,10 +5,13 @@ import Data.Binary.Get
 
 import RiffTokens
 
+getTokens :: RiffFile -> [Token]
+getTokens (RiffFile _ ts) = ts
+
 printTRKF :: Token -> IO ()
-printTRKF (Data "TRKF" _ d) = putStrLn $ showRaw d
+printTRKF (DataToken ("TRKF", _, d)) = putStrLn $ showRaw d
     where showRaw = T.unpack . T.init . decodeUtf16LE
 printTRKF _ = return ()
 
 main :: IO ()
-main = BL.getContents >>= mapM_ printTRKF . runGet parseTokens
+main = BL.getContents >>= mapM_ printTRKF . getTokens . runGet parseRiffFile

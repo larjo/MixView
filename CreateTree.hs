@@ -4,26 +4,29 @@ import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (pack)
 import Data.List (intercalate)
 
-import RiffTokens
+import RiffTokens (parseRiffFile, RiffFile(RiffFile))
 
 type Id = String
 type Len = Int
 type Format = String
 type RawData = ByteString
 
-data Chunk = List Format [Chunk]
-           | Data Id RawData
-data Riff = Riff Format [Chunk]
+type ListInfo = (Format, [Chunk])
+type DataInfo = (Id, RawData)
 
-createRiff :: RiffTokens -> Riff
-createRiff (RiffTokens len format tokens) = Riff format (createChunks len tokens)
+data Chunk = List ListInfo
+           | Data DataInfo
+data Riff = Riff ListInfo
 
-createChunks :: Int -> [Token] -> ([Token], [Chunk])
-createChunks len (t@DataToken id dat : rest)
-    | len > 0 = Data id dat : createChunks (len - tokenLength t)
-    | otherwise = []
-createChunks len (t@ListToken listlen format : rest)
-    | len > 0 = List format (createChunks listlen rest) : createChunks (len - tokenlength t)   
+-- createRiff :: RiffFile -> Riff
+-- createRiff (RiffFile (len, format) tokens) = Riff (format, createChunks len tokens)
+
+-- createChunks :: Int -> [Token] -> ([Token], [Chunk])
+-- createChunks len (t@DataToken id dat : rest)
+    -- | len > 0 = Data id dat : createChunks (len - tokenLength t)
+    -- | otherwise = []
+-- createChunks len (t@ListToken listlen format : rest)
+    -- | len > 0 = List format (createChunks listlen rest) : createChunks (len - tokenlength t)   
 
 showRiff :: Riff -> String
 showRiff (Riff format cs) = "RIFF:" ++ format ++ showChunks cs
@@ -36,4 +39,4 @@ showChunk (List format cs) = "LIST:" ++ format ++ showChunks cs
 showChunk (Data i d) = i
 
 main :: IO ()
-main = BL.getContents >>= putStrLn . showRiff . createRiff . runGet parseRiffTokens
+main = BL.getContents >>= putStrLn . showRiff . createRiff . runGet parseRiffFile

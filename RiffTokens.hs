@@ -1,9 +1,12 @@
 module RiffTokens
     ( 
       Token (DataToken, ListToken)
-    , RiffTokens (RiffTokens)
-    , parseRiffTokens
-    , tokenLength
+    , RiffFile (RiffFile)
+    , ListInfo
+    , DataInfo
+    , parseRiffFile
+    , dataLength
+    , listLength
     ) where
 
 import Data.ByteString (ByteString)
@@ -17,9 +20,12 @@ type Len = Int
 type Format = String
 type RawData = ByteString
 
-data Token = DataToken Id Len RawData
-           | ListToken Len Format
-data RiffTokens = RiffTokens Len Format [Token]
+type ListInfo = (Len, Format)
+type DataInfo = (Id, Len, RawData)
+
+data Token = DataToken DataInfo
+           | ListToken ListInfo
+data RiffFile = RiffFile ListInfo [Token]
 
 -- parse binary
 parseFourCC :: Get String
@@ -34,39 +40,40 @@ parseByteString len = do
     skip $ len `mod` 2 -- skip one byte of padding if the length is odd
     return bs
 
--- parse a token
-parseData :: Get Token
-parseData = do
+-- parse ListInfo
+parseListInfo :: Get ListInfo
+parseListInfo = do
+    _id <- parseFourCC
+    len <- parseInt
+    format <- parseFourCC
+    return (len - 4, format)
+
+-- parse DataInfo
+parseDataInfo :: Get DataInfo
+parseDataInfo = do
     ident <- parseFourCC
     len <- parseInt
     raw <- parseByteString len
-    return (DataToken ident len raw)
+    return (ident, len, raw)
 
-parseList :: Get Token
-parseList = do
-    _id <- parseFourCC -- is always "LIST"
-    len <- parseInt
-    format <- parseFourCC
-    return (ListToken (len - 4) format)
-
+-- parse Token
 parseToken :: Get Token
 parseToken = parseToken' =<< lookAhead parseFourCC
   where
-    parseToken' "LIST" = parseList
-    parseToken' _ = parseData
-
-tokenLength :: Token -> Int
-tokenLength (DataToken _ len _) = len + 8
-tokenLength (ListToken len _) = len + 12
+    parseToken' "LIST" = ListToken <$> parseListInfo
+    parseToken' _ = DataToken <$> parseDataInfo
 
 -- parse a list of tokens
 parseTokens :: Get [Token]
 parseTokens = whileM (not <$> isEmpty) parseToken
 
-parseRiffTokens :: Get RiffTokens
-parseRiffTokens = do
-    _id <- parseFourCC -- is always "RIFF"
-    len <- parseInt
-    format <- parseFourCC
-    tokens <- parseTokens
-    return (RiffTokens (len - 4) format tokens)
+-- parse a complete riff file
+parseRiffFile :: Get RiffFile
+parseRiffFile = RiffFile <$> parseListInfo <*> parseTokens
+
+-- calculate the length of the surrounding block
+dataLength :: DataInfo -> Int
+dataLength (_, len, _) = len + 8
+
+listLength :: ListInfo -> Int
+listLength (len, _) = len + 12
