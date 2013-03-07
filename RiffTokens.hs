@@ -1,9 +1,7 @@
 module RiffTokens
     ( 
-      Token (DataToken, ListToken)
-    , RiffTokens (RiffTokens)
-    , parseRiffTokens
-    , tokenLength
+      Token (Data, List)
+    , parseTokens
     ) where
 
 import Data.ByteString (ByteString)
@@ -17,9 +15,8 @@ type Len = Int
 type Format = String
 type RawData = ByteString
 
-data Token = DataToken Id Len RawData
-           | ListToken Len Format
-data RiffTokens = RiffTokens Len Format [Token]
+data Token = Data Id Len RawData
+           | List Id Len Format
 
 -- parse binary
 parseFourCC :: Get String
@@ -40,33 +37,23 @@ parseData = do
     id <- parseFourCC
     len <- parseInt
     raw <- parseByteString len
-    return (DataToken id len raw)
+    return (Data id len raw)
 
 parseList :: Get Token
 parseList = do
-    _id <- parseFourCC -- is always "LIST"
+    id <- parseFourCC
     len <- parseInt
     format <- parseFourCC
-    return (ListToken (len - 4) format)
+    return (List id (len - 4) format)
 
 parseToken :: Get Token
 parseToken = parseToken' =<< lookAhead parseFourCC
   where
+    parseToken' "RIFF" = parseList
     parseToken' "LIST" = parseList
     parseToken' _ = parseData
-
-tokenLength :: Token -> Int
-tokenLength (DataToken _ len _) = len + 8
-tokenLength (ListToken len _) = len + 12
 
 -- parse a list of tokens
 parseTokens :: Get [Token]
 parseTokens = whileM (not <$> isEmpty) parseToken
 
-parseRiffTokens :: Get RiffTokens
-parseRiffTokens = do
-    _id <- parseFourCC -- is always "RIFF"
-    len <- parseInt
-    format <- parseFourCC
-    tokens <- parseTokens
-    return (RiffTokens (len - 4) format tokens)
