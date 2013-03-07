@@ -34,17 +34,17 @@ parseByteString len = do
 -- parse a token
 parseData :: Get Token
 parseData = do
-    id <- parseFourCC
+    ident <- parseFourCC
     len <- parseInt
     raw <- parseByteString len
-    return (Data id len raw)
+    return (Data ident len raw)
 
 parseList :: Get Token
 parseList = do
-    id <- parseFourCC
+    ident <- parseFourCC
     len <- parseInt
     format <- parseFourCC
-    return (List id (len - 4) format)
+    return (List ident (len - 4) format)
 
 parseToken :: Get Token
 parseToken = parseToken' =<< lookAhead parseFourCC

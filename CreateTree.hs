@@ -18,7 +18,7 @@ createTree :: [Token] -> Chunk
 createTree _ = Chunks "RIFF" "FMTT" [RiffData "TTTT" (pack "hej"),Chunks "LIST" "XXXX" [],RiffData "UUUU" (pack "hopp")]
 
 showTree :: Chunk -> String
-showTree (Chunks i f cs) = i ++ ":" ++ f ++ "(" ++ (intercalate "," $ map showTree cs) ++ ")"
+showTree (Chunks i f cs) = i ++ ":" ++ f ++ "(" ++ intercalate "," $ map showTree cs ++ ")"
 showTree (RiffData i d) = i
 
 main :: IO ()
