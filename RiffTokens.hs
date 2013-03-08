@@ -11,9 +11,15 @@ module RiffTokens
 
 import qualified Data.ByteString as B
 import Data.ByteString.Char8 (unpack)
-import Data.Binary.Get
-import Control.Applicative
+import Data.Binary.Get ( Get
+                       , getByteString
+                       , getWord32le
+                       , isEmpty
+                       , lookAhead
+                       , skip
+                       ) -- requires "cabal install binary"
 import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
+import Control.Applicative
 
 data RiffFile = RiffFile ListInfo [Token]
 
@@ -29,33 +35,41 @@ type Format = String
 type RawData = B.ByteString
 
 -- parse binary
+skipFourCC :: Get ()
+skipFourCC = skip 4
+
 parseFourCC :: Get String
 parseFourCC = unpack <$> getByteString 4
 
-parseInt:: Get Int
+parseInt :: Get Int
 parseInt = fromIntegral <$> getWord32le
 
-parseByteString :: Get B.ByteString
-parseByteString = do
-    len <- parseInt    
+adjustListLength :: Int -> Get Int
+adjustListLength i = return (i - 4)
+
+skipIfOdd :: Int -> Get ()
+skipIfOdd = skip . (`mod` 2)
+
+parseByteString :: Int -> Get B.ByteString
+parseByteString len = do
     bs <- getByteString len
-    skip $ len `mod` 2 -- skip one byte of padding if the length is odd
+    skipIfOdd len
     return bs
 
 -- parse ListInfo
 parseListInfo :: Get ListInfo
-parseListInfo = ListInfo <$> (parseFourCC >> flip (-) 4 <$> parseInt) <*> parseFourCC
+parseListInfo = ListInfo <$> (skipFourCC >> parseInt >>= adjustListLength) <*> parseFourCC
 
 -- parse DataInfo
 parseDataInfo :: Get DataInfo
-parseDataInfo = DataInfo <$> parseFourCC <*> parseByteString
-    
+parseDataInfo = DataInfo <$> parseFourCC <*> (parseInt >>= parseByteString)
+
 -- parse Token
 parseToken :: Get Token
-parseToken = parseToken' =<< lookAhead parseFourCC
-  where
-    parseToken' "LIST" = ListToken <$> parseListInfo
-    parseToken' _ = DataToken <$> parseDataInfo
+parseToken = lookAhead parseFourCC >>= parseToken'
+           where
+             parseToken' "LIST" = ListToken <$> parseListInfo
+             parseToken' _ = DataToken <$> parseDataInfo
 
 -- parse a list of tokens
 parseTokens :: Get [Token]
@@ -68,8 +82,8 @@ parseRiffFile = RiffFile <$> parseListInfo <*> parseTokens
 -- calculate the length of the surrounding block
 dataLength :: DataInfo -> Int
 dataLength (DataInfo _ rawData) = len + len `mod` 2 + 8
-                        where
-                          len = B.length rawData
+                                where
+                                  len = B.length rawData
 
 listLength :: ListInfo -> Int
 listLength (ListInfo len _) = len + 12
