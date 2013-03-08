@@ -2,8 +2,8 @@ module RiffTokens
     ( 
       Token (DataToken, ListToken)
     , RiffFile (RiffFile)
-    , ListInfo
-    , DataInfo
+    , ListInfo (ListInfo)
+    , DataInfo (DataInfo)
     , parseRiffFile
     , dataLength
     , listLength
@@ -15,17 +15,18 @@ import Data.Binary.Get
 import Control.Applicative
 import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
 
+data RiffFile = RiffFile ListInfo [Token]
+
+data Token = DataToken DataInfo
+           | ListToken ListInfo
+
+data DataInfo = DataInfo Id RawData
+data ListInfo = ListInfo Len Format
+
 type Id = String
 type Len = Int
 type Format = String
 type RawData = B.ByteString
-
-type ListInfo = (Len, Format)
-type DataInfo = (Id, RawData)
-
-data Token = DataToken DataInfo
-           | ListToken ListInfo
-data RiffFile = RiffFile ListInfo [Token]
 
 -- parse binary
 parseFourCC :: Get String
@@ -34,28 +35,21 @@ parseFourCC = unpack <$> getByteString 4
 parseInt:: Get Int
 parseInt = fromIntegral <$> getWord32le
 
-parseByteString :: Int -> Get B.ByteString
-parseByteString len = do
+parseByteString :: Get B.ByteString
+parseByteString = do
+    len <- parseInt    
     bs <- getByteString len
     skip $ len `mod` 2 -- skip one byte of padding if the length is odd
     return bs
 
 -- parse ListInfo
 parseListInfo :: Get ListInfo
-parseListInfo = do
-    _id <- parseFourCC
-    len <- parseInt
-    format <- parseFourCC
-    return (len - 4, format)
+parseListInfo = ListInfo <$> (parseFourCC >> flip (-) 4 <$> parseInt) <*> parseFourCC
 
 -- parse DataInfo
 parseDataInfo :: Get DataInfo
-parseDataInfo = do
-    ident <- parseFourCC
-    len <- parseInt
-    raw <- parseByteString len
-    return (ident, raw)
-
+parseDataInfo = DataInfo <$> parseFourCC <*> parseByteString
+    
 -- parse Token
 parseToken :: Get Token
 parseToken = parseToken' =<< lookAhead parseFourCC
@@ -73,9 +67,9 @@ parseRiffFile = RiffFile <$> parseListInfo <*> parseTokens
 
 -- calculate the length of the surrounding block
 dataLength :: DataInfo -> Int
-dataLength (_, rawData) = len + len `mod` 2 + 8
+dataLength (DataInfo _ rawData) = len + len `mod` 2 + 8
                         where
                           len = B.length rawData
 
 listLength :: ListInfo -> Int
-listLength (len, _) = len + 12
+listLength (ListInfo len _) = len + 12

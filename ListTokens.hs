@@ -4,10 +4,10 @@ import Data.Binary.Get
 import RiffTokens
                        
 showListInfo :: String -> ListInfo -> String
-showListInfo i (l, f) = i ++ ":" ++ f ++ "(" ++ show l ++ ")"
+showListInfo i (ListInfo l f) = i ++ ":" ++ f ++ "(" ++ show l ++ ")"
 
 showDataInfo :: DataInfo -> String
-showDataInfo d@(i, _) = i ++ "(" ++ show (dataLength d) ++ ")"
+showDataInfo d@(DataInfo i _) = i ++ "(" ++ show (dataLength d) ++ ")"
 
 showToken :: Token -> String
 showToken (DataToken x) = showDataInfo x
