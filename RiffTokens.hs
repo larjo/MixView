@@ -1,59 +1,89 @@
 module RiffTokens
     ( 
-      Token (Data, List)
-    , parseTokens
+      Token (DataToken, ListToken)
+    , RiffFile (RiffFile)
+    , ListInfo (ListInfo)
+    , DataInfo (DataInfo)
+    , parseRiffFile
+    , dataLength
+    , listLength
     ) where
 
-import Data.ByteString (ByteString)
+import qualified Data.ByteString as B
 import Data.ByteString.Char8 (unpack)
-import Data.Binary.Get
-import Control.Applicative
+import Data.Binary.Get ( Get
+                       , getByteString
+                       , getWord32le
+                       , isEmpty
+                       , lookAhead
+                       , skip
+                       ) -- requires "cabal install binary"
 import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
+import Control.Applicative
+
+data RiffFile = RiffFile ListInfo [Token]
+
+data Token = DataToken DataInfo
+           | ListToken ListInfo
+
+data DataInfo = DataInfo Id RawData
+data ListInfo = ListInfo Len Format
 
 type Id = String
 type Len = Int
 type Format = String
-type RawData = ByteString
-
-data Token = Data Id Len RawData
-           | List Id Len Format
+type RawData = B.ByteString
 
 -- parse binary
+skipFourCC :: Get ()
+skipFourCC = skip 4
+
 parseFourCC :: Get String
 parseFourCC = unpack <$> getByteString 4
 
-parseInt:: Get Int
+parseInt :: Get Int
 parseInt = fromIntegral <$> getWord32le
 
-parseByteString :: Int -> Get ByteString
+adjustListLength :: Int -> Get Int
+adjustListLength i = return (i - 4)
+
+skipIfOdd :: Int -> Get ()
+skipIfOdd = skip . (`mod` 2)
+
+parseByteString :: Int -> Get B.ByteString
 parseByteString len = do
     bs <- getByteString len
-    skip $ len `mod` 2 -- skip one byte of padding if the length is odd
+    skipIfOdd len
     return bs
 
--- parse a token
-parseData :: Get Token
-parseData = do
-    ident <- parseFourCC
-    len <- parseInt
-    raw <- parseByteString len
-    return (Data ident len raw)
+-- parse ListInfo
+parseListInfo :: Get ListInfo
+parseListInfo = ListInfo <$> (skipFourCC >> parseInt >>= adjustListLength) <*> parseFourCC
 
-parseList :: Get Token
-parseList = do
-    ident <- parseFourCC
-    len <- parseInt
-    format <- parseFourCC
-    return (List ident (len - 4) format)
+-- parse DataInfo
+parseDataInfo :: Get DataInfo
+parseDataInfo = DataInfo <$> parseFourCC <*> (parseInt >>= parseByteString)
 
+-- parse Token
 parseToken :: Get Token
-parseToken = parseToken' =<< lookAhead parseFourCC
-  where
-    parseToken' "RIFF" = parseList
-    parseToken' "LIST" = parseList
-    parseToken' _ = parseData
+parseToken = lookAhead parseFourCC >>= parseToken'
+           where
+             parseToken' "LIST" = ListToken <$> parseListInfo
+             parseToken' _ = DataToken <$> parseDataInfo
 
 -- parse a list of tokens
 parseTokens :: Get [Token]
 parseTokens = whileM (not <$> isEmpty) parseToken
 
+-- parse a complete riff file
+parseRiffFile :: Get RiffFile
+parseRiffFile = RiffFile <$> parseListInfo <*> parseTokens
+
+-- calculate the length of the surrounding block
+dataLength :: DataInfo -> Int
+dataLength (DataInfo _ rawData) = len + len `mod` 2 + 8
+                                where
+                                  len = B.length rawData
+
+listLength :: ListInfo -> Int
+listLength (ListInfo len _) = len + 12
