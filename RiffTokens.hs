@@ -2,11 +2,12 @@ module RiffTokens
     ( 
       Token (DataToken, ListToken)
     , RiffFile (RiffFile)
-    , ListInfo (ListInfo)
-    , DataInfo (DataInfo)
+    , ListChunk (ListChunk)
+    , DataChunk (DataChunk)
     , parseRiffFile
     , dataLength
     , listLength
+    , tokenLength
     ) where
 
 import qualified Data.ByteString as B
@@ -21,13 +22,13 @@ import Data.Binary.Get ( Get
 import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
 import Control.Applicative
 
-data RiffFile = RiffFile ListInfo [Token]
+data RiffFile = RiffFile ListChunk [Token]
 
-data Token = DataToken DataInfo
-           | ListToken ListInfo
+data Token = DataToken DataChunk
+           | ListToken ListChunk
 
-data DataInfo = DataInfo Id RawData
-data ListInfo = ListInfo Len Format
+data DataChunk = DataChunk Id RawData
+data ListChunk = ListChunk Len Format
 
 type Id = String
 type Len = Int
@@ -56,20 +57,24 @@ parseByteString len = do
     skipIfOdd len
     return bs
 
--- parse ListInfo
-parseListInfo :: Get ListInfo
-parseListInfo = ListInfo <$> (skipFourCC >> parseInt >>= adjustListLength) <*> parseFourCC
+-- parse ListChunk
+parseListChunk :: Get ListChunk
+parseListChunk = ListChunk 
+                <$> (skipFourCC >> parseInt >>= adjustListLength)
+                <*> parseFourCC
 
--- parse DataInfo
-parseDataInfo :: Get DataInfo
-parseDataInfo = DataInfo <$> parseFourCC <*> (parseInt >>= parseByteString)
+-- parse DataChunk
+parseDataChunk :: Get DataChunk
+parseDataChunk = DataChunk 
+                <$> parseFourCC 
+                <*> (parseInt >>= parseByteString)
 
 -- parse Token
 parseToken :: Get Token
 parseToken = lookAhead parseFourCC >>= parseToken'
            where
-             parseToken' "LIST" = ListToken <$> parseListInfo
-             parseToken' _ = DataToken <$> parseDataInfo
+             parseToken' "LIST" = ListToken <$> parseListChunk
+             parseToken' _ = DataToken <$> parseDataChunk
 
 -- parse a list of tokens
 parseTokens :: Get [Token]
@@ -77,13 +82,17 @@ parseTokens = whileM (not <$> isEmpty) parseToken
 
 -- parse a complete riff file
 parseRiffFile :: Get RiffFile
-parseRiffFile = RiffFile <$> parseListInfo <*> parseTokens
+parseRiffFile = RiffFile <$> parseListChunk <*> parseTokens
+
+tokenLength :: Token -> Len
+tokenLength (DataToken x) = dataLength x
+tokenLength (ListToken x) = listLength x
 
 -- calculate the length of the surrounding block
-dataLength :: DataInfo -> Int
-dataLength (DataInfo _ rawData) = len + len `mod` 2 + 8
+dataLength :: DataChunk -> Len
+dataLength (DataChunk _ rawData) = len + len `mod` 2 + 8
                                 where
                                   len = B.length rawData
 
-listLength :: ListInfo -> Int
-listLength (ListInfo len _) = len + 12
+listLength :: ListChunk -> Len
+listLength (ListChunk len _) = len + 12

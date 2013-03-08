@@ -1,42 +1,58 @@
 import qualified Data.ByteString.Lazy as BL
-import Data.Binary.Get
+import Data.Binary.Get (runGet)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (pack)
 import Data.List (intercalate)
 
-import RiffTokens (parseRiffFile, RiffFile(RiffFile))
+import RiffTokens
 
 type Id = String
 type Len = Int
 type Format = String
 type RawData = ByteString
 
-type ListInfo = (Format, [Chunk])
-type DataInfo = (Id, RawData)
+data List = List Format [Node]
+data Data = Data Id RawData
 
-data Chunk = List ListInfo
-           | Data DataInfo
-data Riff = Riff ListInfo
+data Node = ListNode List
+          | DataNode Data 
+type RiffTree = List
 
--- createRiff :: RiffFile -> Riff
--- createRiff (RiffFile (len, format) tokens) = Riff (format, createChunks len tokens)
+createRiff :: RiffFile -> RiffTree
+createRiff (RiffFile (ListChunk len format) tokens) =
+    List format (createNodes len tokens)
 
--- createChunks :: Int -> [Token] -> ([Token], [Chunk])
+createNodes :: Len -> [Token] -> [Node]
+createNodes len ts = []
+
+sumNodes :: [Token] -> [Int]
+sumNodes = map tokenLength
+
+accNodes :: [Int] -> [Int]
+accNodes = tail . scanl (+) 0
+
+tokenSums :: [Token] -> [(Token, Int)]
+tokenSums tokens = zip tokens (accNodes $ sumNodes tokens)
+
+takeWhileSum sum = takeWhile (\(_, i) -> i <= sum)
 -- createChunks len (t@DataToken id dat : rest)
     -- | len > 0 = Data id dat : createChunks (len - tokenLength t)
     -- | otherwise = []
 -- createChunks len (t@ListToken listlen format : rest)
     -- | len > 0 = List format (createChunks listlen rest) : createChunks (len - tokenlength t)   
 
-showRiff :: Riff -> String
-showRiff (Riff format cs) = "RIFF:" ++ format ++ showChunks cs
+showRiff :: RiffTree -> String
+showRiff (List format cs) = "RIFF:" ++ format ++ showNodes cs
 
-showChunks :: [Chunk] -> String
-showChunks chunks = "(" ++ intercalate "," (map showChunk chunks) ++ ")"
+showNodes :: [Node] -> String
+showNodes nodes = "(" ++ intercalate "," (map showNode nodes) ++ ")"
 
-showChunk :: Chunk -> String
-showChunk (List format cs) = "LIST:" ++ format ++ showChunks cs
-showChunk (Data i d) = i
+showNode :: Node -> String
+showNode (ListNode (List format cs)) = "LIST:" ++ format ++ showNodes cs
+showNode (DataNode (Data i d)) = i
 
 main :: IO ()
-main = BL.getContents >>= putStrLn . showRiff . createRiff . runGet parseRiffFile
+--main = BL.getContents >>= putStrLn . showRiff . createRiff . runGet parseRiffFile
+main = BL.getContents >>= print . map snd . showTokenSum . runGet parseRiffFile
+
+showTokenSum (RiffFile _ tokens) = tokenSums tokens

@@ -9,7 +9,7 @@ getTokens :: RiffFile -> [Token]
 getTokens (RiffFile _ ts) = ts
 
 printTRKF :: Token -> IO ()
-printTRKF (DataToken (DataInfo "TRKF" d)) =
+printTRKF (DataToken (DataChunk "TRKF" d)) =
     putStrLn $ showRaw d
   where 
     showRaw = T.unpack . T.init . decodeUtf16LE
