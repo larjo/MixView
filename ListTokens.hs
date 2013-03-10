@@ -20,6 +20,6 @@ printRiff :: RiffFile -> IO ()
 printRiff (RiffFile l ts) = do
     putStrLn $ showListInfo "RIFF" l
     mapM_ printToken ts
-    
+
 main :: IO ()
 main = BL.getContents >>= printRiff . runGet parseRiffFile

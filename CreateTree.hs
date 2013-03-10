@@ -3,6 +3,7 @@ import Data.Binary.Get (runGet)
 import Data.ByteString (ByteString)
 import Data.ByteString.Char8 (pack)
 import Data.List (intercalate)
+import Control.Applicative
 
 import RiffTokens
 
@@ -25,16 +26,35 @@ createRiff (RiffFile (ListChunk len format) tokens) =
 createNodes :: Len -> [Token] -> [Node]
 createNodes len ts = []
 
-sumNodes :: [Token] -> [Int]
-sumNodes = map tokenLength
+idMap :: (a -> b) -> [a] -> [(a, b)]
+idMap f = map $ (,) <$> id <*> f
+
+scanSecond :: (b -> b -> b) -> [(a,b)] -> [(a,b)]
+scanSecond f = scanl1 g
+             where
+               g (_, y) (x, y') = (x, f y y')
+
+splitTokens :: Int -> [Token] -> ([Token], [Token])
+splitTokens s  l =
+            (map fst a, map fst b)
+          where
+            (a, b) = span ((<= s) . snd) . scanSecond (+) . idMap tokenLength $ l
+
+sumNodes :: [Token] -> [(Token, Int)]
+sumNodes = map $ (,) <$> id <*> tokenLength
 
 accNodes :: [Int] -> [Int]
 accNodes = tail . scanl (+) 0
 
-tokenSums :: [Token] -> [(Token, Int)]
-tokenSums tokens = zip tokens (accNodes $ sumNodes tokens)
-
-takeWhileSum sum = takeWhile (\(_, i) -> i <= sum)
+-- tokenSums :: [Token] -> [(Token, Int)]
+-- tokenSums tokens = zip tokens (accNodes $ sumNodes tokens)
+-- 
+-- splitTokens :: [Token] -> Len -> ([Token], [Token])
+-- splitTokens tokens len =
+--     span (<= len) acc
+--   where
+--     acc = accNodes $ map tokenLength tokens
+-- 
 -- createChunks len (t@DataToken id dat : rest)
     -- | len > 0 = Data id dat : createChunks (len - tokenLength t)
     -- | otherwise = []
@@ -55,4 +75,4 @@ main :: IO ()
 --main = BL.getContents >>= putStrLn . showRiff . createRiff . runGet parseRiffFile
 main = BL.getContents >>= print . map snd . showTokenSum . runGet parseRiffFile
 
-showTokenSum (RiffFile _ tokens) = tokenSums tokens
+showTokenSum (RiffFile _ tokens) = [("", "")] -- tokenSums tokens
