@@ -3,23 +3,20 @@ import Data.Binary.Get
 
 import RiffTokens
                        
-showListInfo :: String -> ListChunk -> String
-showListInfo i (ListChunk l f) = i ++ ":" ++ f ++ "(" ++ show l ++ ")"
+showListInfo :: String -> List -> String
+showListInfo i (l, f) = i ++ ":" ++ f ++ "(" ++ show l ++ ")"
 
-showDataInfo :: DataChunk -> String
-showDataInfo d@(DataChunk i _) = i ++ "(" ++ show (dataLength d) ++ ")"
+showChunk :: Chunk -> String
+showChunk c@(DataChunk (i, _)) = i ++ "(" ++ show (chunkLength c) ++ ")"
+showChunk (ListChunk x) = showListInfo "LIST" x
 
-showToken :: Token -> String
-showToken (DataToken x) = showDataInfo x
-showToken (ListToken x) = showListInfo "LIST" x
+printChunk :: Chunk -> IO ()
+printChunk = putStrLn . showChunk
 
-printToken :: Token -> IO ()
-printToken = putStrLn . showToken
-
-printRiff :: RiffFile -> IO ()
-printRiff (RiffFile l ts) = do
+printRiff :: RiffChunks -> IO ()
+printRiff (RiffChunks l cs) = do
     putStrLn $ showListInfo "RIFF" l
-    mapM_ printToken ts
+    mapM_ printChunk cs
 
 main :: IO ()
-main = BL.getContents >>= printRiff . runGet parseRiffFile
+main = BL.getContents >>= printRiff . runGet parseRiffChunks

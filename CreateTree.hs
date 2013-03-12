@@ -13,8 +13,12 @@ createRiff :: RiffChunks -> Tree
 createRiff (RiffChunks (len, format) chunks) =
     Tree format (createNodes len chunks)
 
+showPair (RiffChunks (len, format) chunks) = let (l, r) = splitChunks len chunks in
+                                             show (len, length l, length r)
+    
 createNodes :: Len -> [Chunk] -> [Node]
-createNodes len ts = []
+createNodes len chunks = 
+                       where (l, r) = splitChunks len chunks
 
 splitChunks :: Len -> [Chunk] -> ([Chunk], [Chunk])
 splitChunks len chunks =
@@ -37,6 +41,9 @@ showNodes nodes = "(" ++ intercalate "," (map showNode nodes) ++ ")"
 showNode :: Node -> String
 showNode (TreeNode (Tree format cs)) = "LIST:" ++ format ++ showNodes cs
 showNode (DataNode i d) = i
+
+parseFile :: String -> IO ()
+parseFile fn = BL.readFile fn >>= putStrLn . showPair . runGet parseRiffChunks
 
 main :: IO ()
 main = BL.getContents >>= putStrLn . showRiff . createRiff . runGet parseRiffChunks
