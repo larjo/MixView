@@ -1,13 +1,15 @@
 module RiffTokens
     ( 
-      Token (DataToken, ListToken)
-    , RiffFile (RiffFile)
-    , ListChunk (ListChunk)
-    , DataChunk (DataChunk)
-    , parseRiffFile
-    , dataLength
-    , listLength
-    , tokenLength
+      Chunk (DataChunk, ListChunk)
+    , RiffChunks (RiffChunks)
+    , List
+    , Data
+    , Id
+    , Len
+    , Format
+    , RawData
+    , parseRiffChunks
+    , chunkLength
     ) where
 
 import qualified Data.ByteString as B
@@ -22,13 +24,13 @@ import Data.Binary.Get ( Get
 import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
 import Control.Applicative
 
-data RiffFile = RiffFile ListChunk [Token]
+data RiffChunks = RiffChunks List [Chunk]
 
-data Token = DataToken DataChunk
-           | ListToken ListChunk
+data Chunk = DataChunk Data
+           | ListChunk List
 
-data DataChunk = DataChunk Id RawData
-data ListChunk = ListChunk Len Format
+type List = (Len, Format)
+type Data = (Id, RawData)
 
 type Id = String
 type Len = Int
@@ -57,42 +59,36 @@ parseByteString len = do
     skipIfOdd len
     return bs
 
--- parse ListChunk
-parseListChunk :: Get ListChunk
-parseListChunk = ListChunk 
-                <$> (skipFourCC >> parseInt >>= adjustListLength)
-                <*> parseFourCC
+-- parse List
+parseList :: Get List
+parseList = (,)
+            <$> (skipFourCC >> parseInt >>= adjustListLength)
+            <*> parseFourCC
 
 -- parse DataChunk
-parseDataChunk :: Get DataChunk
-parseDataChunk = DataChunk 
-                <$> parseFourCC 
-                <*> (parseInt >>= parseByteString)
+parseData :: Get Data
+parseData = (,)
+            <$> parseFourCC 
+            <*> (parseInt >>= parseByteString)
 
--- parse Token
-parseToken :: Get Token
-parseToken = lookAhead parseFourCC >>= parseToken'
+-- parse Chunk
+parseChunk :: Get Chunk
+parseChunk = lookAhead parseFourCC >>= parseChunk'
            where
-             parseToken' "LIST" = ListToken <$> parseListChunk
-             parseToken' _ = DataToken <$> parseDataChunk
+             parseChunk' "LIST" = ListChunk <$> parseList
+             parseChunk' _ = DataChunk <$> parseData
 
 -- parse a list of tokens
-parseTokens :: Get [Token]
-parseTokens = whileM (not <$> isEmpty) parseToken
+parseChunks :: Get [Chunk]
+parseChunks = whileM (not <$> isEmpty) parseChunk
 
 -- parse a complete riff file
-parseRiffFile :: Get RiffFile
-parseRiffFile = RiffFile <$> parseListChunk <*> parseTokens
+parseRiffChunks :: Get RiffChunks
+parseRiffChunks = RiffChunks <$> parseList <*> parseChunks
 
-tokenLength :: Token -> Len
-tokenLength (DataToken x) = dataLength x
-tokenLength (ListToken x) = listLength x
+chunkLength :: Chunk -> Len
+chunkLength (DataChunk (_, rawData)) = len + len `mod` 2 + 8
+                                     where
+                                       len = B.length rawData
 
--- calculate the length of the surrounding block
-dataLength :: DataChunk -> Len
-dataLength (DataChunk _ rawData) = len + len `mod` 2 + 8
-                                where
-                                  len = B.length rawData
-
-listLength :: ListChunk -> Len
-listLength (ListChunk len _) = len + 12
+chunkLength (ListChunk (len, _)) = len + 12
