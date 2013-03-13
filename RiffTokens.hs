@@ -2,44 +2,67 @@ module RiffTokens
     ( 
       Chunk (DataChunk, ListChunk)
     , RiffChunks (RiffChunks)
-    , List
-    , Data
+    , List (List, listLength, listFormat)
+    , Data (Data, dataId, dataRaw)
     , Id
     , Len
     , Format
-    , RawData
+    , Raw
     , parseRiffChunks
     , chunkLength
+    , dataChunkLength
+    , listChunkLength
+    , dataLength
     ) where
 
 import Data.ByteString as B (ByteString, length)
 import Data.ByteString.Char8 (unpack)
+-- requires "cabal install binary"
 import Data.Binary.Get ( Get
                        , getByteString
                        , getWord32le
                        , isEmpty
                        , lookAhead
                        , skip
-                       ) -- requires "cabal install binary"
-import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
-import Control.Applicative
+                       ) 
+-- requires "cabal install monad-loops"
+import Control.Monad.Loops (whileM)
+import Control.Applicative ((<$>), (<*>))
+import Data.List (intercalate)
 
 type Id = String
 type Len = Int
 type Format = String
-type RawData = ByteString
+type Raw = ByteString
 
-type Data = (Id, RawData)
-type List = (Len, Format)
+data Data = Data { dataId  :: Id
+                 , dataRaw :: Raw
+                 }
 
+data List = List { listLength :: Len
+                 , listFormat  :: Format
+                 }
+                 
 data Chunk = DataChunk Data
            | ListChunk List
 
-data RiffChunks = RiffChunks List [Chunk]
+data RiffChunks = RiffChunks List [Chunk] -- RiffChunks = List(Data|List)*
 
+flatten :: [String] -> String
+flatten xs = "(" ++ intercalate ":" xs ++ ")"
+
+instance Show Data where
+    show x = flatten [show $ dataChunkLength x
+                    , dataId x]
+    
+instance Show List where    
+    show x = flatten [show $ listChunkLength x
+                    , listFormat x
+                    , show $ listLength x]
+    
 instance Show Chunk where
-    show (DataChunk (i, r)) = i
-    show (ListChunk (l, f)) = f ++ "(" ++ show l ++ ")"
+    show (DataChunk x) = show x
+    show (ListChunk x) = show x
 
 -- parse binary
 skipFourCC :: Get ()
@@ -65,13 +88,13 @@ parseByteString len = do
 
 -- parse List
 parseList :: Get List
-parseList = liftA2 (,) (skipFourCC >> parseInt >>= adjustListLength)
-                       parseFourCC
+parseList = List <$> (skipFourCC >> parseInt >>= adjustListLength)
+                 <*> parseFourCC
 
 -- parse DataChunk
 parseData :: Get Data
-parseData = liftA2 (,) parseFourCC 
-                       (parseInt >>= parseByteString)
+parseData = Data <$> parseFourCC 
+                 <*> (parseInt >>= parseByteString)
 
 -- parse Chunk
 parseChunk :: Get Chunk
@@ -89,13 +112,16 @@ parseRiffChunks :: Get RiffChunks
 parseRiffChunks = RiffChunks <$> parseList <*> parseChunks
 
 dataLength :: Data -> Len
-dataLength (_, rawData) = len + len `mod` 2 + 8
-                        where
-                          len = B.length rawData
+dataLength d = B.length $ dataRaw d
 
-listLength :: List -> Len
-listLength (len, _) = len + 12
+dataChunkLength :: Data -> Len
+dataChunkLength d = len + len `mod` 2 + 8
+             where
+               len = dataLength d
+
+listChunkLength :: List -> Len
+listChunkLength = (+12) . listLength
 
 chunkLength :: Chunk -> Len
-chunkLength (DataChunk d) = dataLength d
-chunkLength (ListChunk l) = listLength l
+chunkLength (DataChunk d) = dataChunkLength d
+chunkLength (ListChunk l) = listChunkLength l

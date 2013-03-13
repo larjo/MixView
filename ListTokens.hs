@@ -1,13 +1,12 @@
-import qualified Data.ByteString.Lazy as BL
-import Data.Binary.Get
-
+import Data.Binary.Get (runGet)
+import qualified Data.ByteString.Lazy as BL (ByteString, readFile, getContents)
 import RiffTokens
                        
 showListInfo :: String -> List -> String
-showListInfo i (l, f) = i ++ ":" ++ f ++ "(" ++ show l ++ ")"
+showListInfo i l = i ++ ":" ++ listFormat l ++ "(" ++ show (listLength l) ++ ")"
 
 showChunk :: Chunk -> String
-showChunk c@(DataChunk (i, _)) = i ++ "(" ++ show (chunkLength c) ++ ")"
+showChunk (DataChunk d) = dataId d ++ "(" ++ show (dataLength d) ++ ")"
 showChunk (ListChunk x) = showListInfo "LIST" x
 
 printChunk :: Chunk -> IO ()
@@ -18,11 +17,11 @@ printRiff (RiffChunks l cs) = do
     putStrLn $ showListInfo "RIFF" l
     mapM_ printChunk cs
 
-run :: String -> IO ()
-run fn = BL.readFile fn >>= printRiff . runGet parseRiffChunks
-
-getChunks :: String -> IO RiffChunks
-getChunks fn = BL.readFile fn >>= return . runGet parseRiffChunks
+getChunks :: BL.ByteString -> IO RiffChunks
+getChunks = return . runGet parseRiffChunks
     
 main :: IO ()
-main = BL.getContents >>= printRiff . runGet parseRiffChunks
+main = BL.getContents >>= getChunks >>= printRiff
+
+run :: FilePath -> IO RiffChunks
+run fn = BL.readFile fn >>= getChunks
