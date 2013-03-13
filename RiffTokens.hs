@@ -52,17 +52,19 @@ data Chunk = DataChunk Data
 
 data RiffChunks = RiffChunks List [Chunk] -- RiffChunks = List(Data|List)*
 
-flatten :: [String] -> String
-flatten xs = "(" ++ intercalate ":" xs ++ ")"
+formatChunk :: [String] -> String
+formatChunk xs = "(" ++ intercalate ":" xs ++ ")"
 
 instance Show Data where
-    show x = flatten [ show $ dataChunkLength x
-                     , dataId x]
-    
+    show x = formatChunk [ show $ dataChunkLength x
+                         , dataId x
+                         ]
+
 instance Show List where    
-    show x = flatten [ show $ listChunkLength x
-                     , listFormat x
-                     , show $ listLength x]
+    show x = formatChunk [ show $ listChunkLength x
+                         , listFormat x
+                         , show $ listLength x
+                         ]
     
 instance Show Chunk where
     show (DataChunk x) = show x
@@ -116,12 +118,13 @@ parseRiffChunks :: Get RiffChunks
 parseRiffChunks = RiffChunks <$> parseList <*> parseChunks
 
 dataLength :: Data -> Len
-dataLength d = B.length $ dataRaw d
+dataLength = B.length . dataRaw
+
+surroundingDataLength :: Len -> Len
+surroundingDataLength len = len + len `mod` 2 + 8
 
 dataChunkLength :: Data -> Len
-dataChunkLength d = len + len `mod` 2 + 8
-                  where
-                    len = dataLength d
+dataChunkLength = surroundingDataLength . dataLength
 
 listChunkLength :: List -> Len
 listChunkLength = (+ 12) . listLength

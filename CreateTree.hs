@@ -5,16 +5,13 @@ import Data.List (intercalate)
 import RiffTokens
 
 data Node = TreeNode Tree
-          | DataNode Id RawData
+          | DataNode Id Raw
 
 data Tree = Tree Format [Node]
 
 createRiff :: RiffChunks -> Tree
-createRiff (RiffChunks (len, format) chunks) =
+createRiff (RiffChunks (List len format) chunks) =
     Tree format (createNodes len chunks)
-
-showPair (RiffChunks (len, format) chunks) = let (l, r) = splitChunks len chunks in
-                                             show (len, length l, length r)
     
 createNodes :: Len -> [Chunk] -> [Node]
 createNodes len chunks = 

@@ -19,9 +19,9 @@ printRiff (RiffChunks l cs) = do
 
 getChunks :: BL.ByteString -> IO RiffChunks
 getChunks = return . runGet parseRiffChunks
-    
+
+load :: FilePath -> IO RiffChunks
+load fn = BL.readFile fn >>= getChunks
+   
 main :: IO ()
 main = BL.getContents >>= getChunks >>= printRiff
-
-run :: FilePath -> IO RiffChunks
-run fn = BL.readFile fn >>= getChunks
