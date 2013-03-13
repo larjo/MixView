@@ -18,5 +18,11 @@ printRiff (RiffChunks l cs) = do
     putStrLn $ showListInfo "RIFF" l
     mapM_ printChunk cs
 
+run :: String -> IO ()
+run fn = BL.readFile fn >>= printRiff . runGet parseRiffChunks
+
+getChunks :: String -> IO RiffChunks
+getChunks fn = BL.readFile fn >>= return . runGet parseRiffChunks
+    
 main :: IO ()
 main = BL.getContents >>= printRiff . runGet parseRiffChunks

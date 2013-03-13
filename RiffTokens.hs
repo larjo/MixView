@@ -12,7 +12,7 @@ module RiffTokens
     , chunkLength
     ) where
 
-import qualified Data.ByteString as B
+import Data.ByteString as B (ByteString, length)
 import Data.ByteString.Char8 (unpack)
 import Data.Binary.Get ( Get
                        , getByteString
@@ -24,18 +24,22 @@ import Data.Binary.Get ( Get
 import Control.Monad.Loops (whileM) -- requires "cabal install monad-loops"
 import Control.Applicative
 
-data RiffChunks = RiffChunks List [Chunk]
+type Id = String
+type Len = Int
+type Format = String
+type RawData = ByteString
+
+type Data = (Id, RawData)
+type List = (Len, Format)
 
 data Chunk = DataChunk Data
            | ListChunk List
 
-type List = (Len, Format)
-type Data = (Id, RawData)
+data RiffChunks = RiffChunks List [Chunk]
 
-type Id = String
-type Len = Int
-type Format = String
-type RawData = B.ByteString
+instance Show Chunk where
+    show (DataChunk (i, r)) = i
+    show (ListChunk (l, f)) = f ++ "(" ++ show l ++ ")"
 
 -- parse binary
 skipFourCC :: Get ()
@@ -53,7 +57,7 @@ adjustListLength i = return (i - 4)
 skipIfOdd :: Int -> Get ()
 skipIfOdd = skip . (`mod` 2)
 
-parseByteString :: Int -> Get B.ByteString
+parseByteString :: Int -> Get ByteString
 parseByteString len = do
     bs <- getByteString len
     skipIfOdd len
@@ -61,15 +65,13 @@ parseByteString len = do
 
 -- parse List
 parseList :: Get List
-parseList = (,)
-            <$> (skipFourCC >> parseInt >>= adjustListLength)
-            <*> parseFourCC
+parseList = liftA2 (,) (skipFourCC >> parseInt >>= adjustListLength)
+                       parseFourCC
 
 -- parse DataChunk
 parseData :: Get Data
-parseData = (,)
-            <$> parseFourCC 
-            <*> (parseInt >>= parseByteString)
+parseData = liftA2 (,) parseFourCC 
+                       (parseInt >>= parseByteString)
 
 -- parse Chunk
 parseChunk :: Get Chunk
@@ -86,9 +88,14 @@ parseChunks = whileM (not <$> isEmpty) parseChunk
 parseRiffChunks :: Get RiffChunks
 parseRiffChunks = RiffChunks <$> parseList <*> parseChunks
 
-chunkLength :: Chunk -> Len
-chunkLength (DataChunk (_, rawData)) = len + len `mod` 2 + 8
-                                     where
-                                       len = B.length rawData
+dataLength :: Data -> Len
+dataLength (_, rawData) = len + len `mod` 2 + 8
+                        where
+                          len = B.length rawData
 
-chunkLength (ListChunk (len, _)) = len + 12
+listLength :: List -> Len
+listLength (len, _) = len + 12
+
+chunkLength :: Chunk -> Len
+chunkLength (DataChunk d) = dataLength d
+chunkLength (ListChunk l) = listLength l
