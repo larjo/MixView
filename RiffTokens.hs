@@ -17,7 +17,6 @@ module RiffTokens
 
 import Data.ByteString as B (ByteString, length)
 import Data.ByteString.Char8 (unpack)
--- requires "cabal install binary"
 import Data.Binary.Get ( Get
                        , getByteString
                        , getWord32le
@@ -25,8 +24,11 @@ import Data.Binary.Get ( Get
                        , lookAhead
                        , skip
                        ) 
--- requires "cabal install monad-loops"
+-- requires "cabal install binary"
+
 import Control.Monad.Loops (whileM)
+-- requires "cabal install monad-loops"
+
 import Control.Applicative ((<$>), (<*>))
 import Data.List (intercalate)
 
@@ -35,13 +37,15 @@ type Len = Int
 type Format = String
 type Raw = ByteString
 
-data Data = Data { dataId  :: Id
-                 , dataRaw :: Raw
-                 }
+data Data = Data 
+    { dataId  :: Id
+    , dataRaw :: Raw
+    }
 
-data List = List { listLength :: Len
-                 , listFormat  :: Format
-                 }
+data List = List
+    { listLength :: Len
+    , listFormat  :: Format
+    }
                  
 data Chunk = DataChunk Data
            | ListChunk List
@@ -52,13 +56,13 @@ flatten :: [String] -> String
 flatten xs = "(" ++ intercalate ":" xs ++ ")"
 
 instance Show Data where
-    show x = flatten [show $ dataChunkLength x
-                    , dataId x]
+    show x = flatten [ show $ dataChunkLength x
+                     , dataId x]
     
 instance Show List where    
-    show x = flatten [show $ listChunkLength x
-                    , listFormat x
-                    , show $ listLength x]
+    show x = flatten [ show $ listChunkLength x
+                     , listFormat x
+                     , show $ listLength x]
     
 instance Show Chunk where
     show (DataChunk x) = show x
@@ -116,11 +120,11 @@ dataLength d = B.length $ dataRaw d
 
 dataChunkLength :: Data -> Len
 dataChunkLength d = len + len `mod` 2 + 8
-             where
-               len = dataLength d
+                  where
+                    len = dataLength d
 
 listChunkLength :: List -> Len
-listChunkLength = (+12) . listLength
+listChunkLength = (+ 12) . listLength
 
 chunkLength :: Chunk -> Len
 chunkLength (DataChunk d) = dataChunkLength d
