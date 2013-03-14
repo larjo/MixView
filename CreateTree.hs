@@ -12,22 +12,22 @@ data Tree = Tree Format [Node]
 -- mapConsume maps a function over a list. 
 -- The function itself decides how much of the list it consumes.
 -- mapConsume returns the unconsumed part of the list
-mapConsume :: Len -> (a -> [a] -> (Len, b, [a])) -> [a] -> ([b], [a])
+mapConsume :: Len -> ([a] -> (Len, b, [a])) -> [a] -> ([b], [a])
 mapConsume _ _ [] = ([], [])
 mapConsume 0 _ r = ([], r)
-mapConsume len f (x:xs) = (y : ys, rest')
-  where 
-    (l, y, rest) = f x xs
+mapConsume len f xs = (y : ys, rest')
+  where
+    (l, y, rest) = f xs
     (ys, rest') = mapConsume (len - l) f rest
 
-createNode :: Chunk -> [Chunk] -> (Len, Node, [Chunk])
-createNode (DataChunk dat) cs = (dataChunkLength dat, DataNode (dataId dat) (dataRaw dat), cs)
-createNode (ListChunk list) cs = (listChunkLength list, TreeNode tree, rest)
+createNode :: [Chunk] -> (Len, Node, [Chunk])
+createNode (DataChunk dat:cs) = (dataChunkLength dat, DataNode (dataId dat) (dataRaw dat), cs)
+createNode (ListChunk list:cs) = (listChunkLength list, TreeNode tree, rest)
   where
     (tree, rest) = createTree list cs
 
 createTree :: List -> [Chunk] -> (Tree, [Chunk])
-createTree (List len format) cs = ((Tree format nodes), rest)
+createTree (List len format) cs = (Tree format nodes, rest)
   where
     (nodes, rest) = mapConsume len createNode cs
 
@@ -38,14 +38,14 @@ showRiff :: Tree -> String
 showRiff (Tree format cs) = "RIFF:" ++ format ++ showNodes 1 cs
 
 indent :: Int -> String
-indent ind = "\n" ++ replicate (ind * 2) ' '
+indent ind = '\n' : replicate (ind * 2) ' '
 
 showNodes :: Int -> [Node] -> String
-showNodes ind nodes = "(" ++ intercalate "," (map (showNode ind) nodes) ++ ")"
+showNodes ind nodes = '(' : intercalate "," (map (showNode ind) nodes) ++ ")"
 
 showNode :: Int -> Node -> String
 showNode ind (TreeNode (Tree format cs)) = indent ind ++ "LIST:" ++ format ++ showNodes (ind + 1) cs
-showNode ind (DataNode i d) = i
+showNode _ (DataNode i _) = i
 
 parseFile :: String -> IO (Tree, [Chunk])
 parseFile fn = BL.readFile fn >>= return . createRiff . runGet parseRiffChunks
