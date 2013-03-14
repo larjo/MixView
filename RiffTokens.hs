@@ -53,7 +53,7 @@ data Chunk = DataChunk Data
 data RiffChunks = RiffChunks List [Chunk] -- RiffChunks = List(Data|List)*
 
 formatChunk :: [String] -> String
-formatChunk xs = "(" ++ intercalate ":" xs ++ ")"
+formatChunk xs = intercalate ":" xs
 
 instance Show Data where
     show x = formatChunk [ show $ dataChunkLength x
