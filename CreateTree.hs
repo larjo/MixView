@@ -1,5 +1,5 @@
 import Data.Binary.Get (runGet)
-import qualified Data.ByteString.Lazy (getContents) as BL
+import qualified Data.ByteString.Lazy as BL (getContents, readFile)
 import Data.List (intercalate)
 
 import RiffTokens
