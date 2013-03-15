@@ -37,35 +37,35 @@ type Len = Int
 type Format = String
 type Raw = ByteString
 
-data Data = Data 
+data Data = Data
     { dataId  :: Id
     , dataRaw :: Raw
     }
 
 data List = List
     { listLength :: Len
-    , listFormat  :: Format
+    , listFormat :: Format
     }
-                 
+
 data Chunk = DataChunk Data
            | ListChunk List
 
 data RiffChunks = RiffChunks List [Chunk] -- RiffChunks = List(Data|List)*
 
 formatChunk :: [String] -> String
-formatChunk xs = intercalate ":" xs
+formatChunk = intercalate ":"
 
 instance Show Data where
     show x = formatChunk [ show $ dataChunkLength x
                          , dataId x
                          ]
 
-instance Show List where    
+instance Show List where
     show x = formatChunk [ show $ listChunkLength x
                          , listFormat x
                          , show $ listLength x
                          ]
-    
+
 instance Show Chunk where
     show (DataChunk x) = show x
     show (ListChunk x) = show x
@@ -107,7 +107,7 @@ parseChunk :: Get Chunk
 parseChunk = lookAhead parseFourCC >>= parseChunk'
            where
              parseChunk' "LIST" = ListChunk <$> parseList
-             parseChunk' _ = DataChunk <$> parseData
+             parseChunk' _      = DataChunk <$> parseData
 
 -- parse a list of tokens
 parseChunks :: Get [Chunk]
