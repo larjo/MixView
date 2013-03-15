@@ -1,11 +1,11 @@
-import qualified Data.ByteString.Lazy as BL
 import Data.Binary.Get (runGet)
+import qualified Data.ByteString.Lazy (getContents) as BL
 import Data.List (intercalate)
 
 import RiffTokens
 
-data Node = TreeNode Tree
-          | DataNode Id Raw
+data Node = DataNode Id Raw
+          | TreeNode Tree
 
 data Tree = Tree Format [Node]
 
