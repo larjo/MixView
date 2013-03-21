@@ -1,6 +1,9 @@
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL (getContents, readFile)
 import Data.List (intercalate)
+import Control.Monad.State
+import Control.Monad.Loops
+import Control.Applicative
 
 import RiffTokens
 
@@ -9,30 +12,36 @@ data Node = DataNode Id Raw
 
 data Tree = Tree Format [Node]
 
--- mapConsume maps a function over a list. 
--- The function itself decides how much of the list it consumes.
--- mapConsume returns the unconsumed part of the list
-mapConsume :: Len -> ([a] -> (Len, b, [a])) -> [a] -> ([b], [a])
-mapConsume _ _ [] = ([], [])
-mapConsume 0 _ r = ([], r)
-mapConsume len f xs = (y : ys, rest')
-  where
-    (l, y, rest) = f xs
-    (ys, rest') = mapConsume (len - l) f rest
+data ChunkState = ChunkState
+    { chunks :: [Chunk]
+    } deriving Show
 
-createNode :: [Chunk] -> (Len, Node, [Chunk])
-createNode (DataChunk dat:cs) = (dataChunkLength dat, DataNode (dataId dat) (dataRaw dat), cs)
-createNode (ListChunk list:cs) = (listChunkLength list, TreeNode tree, rest)
-  where
-    (tree, rest) = createTree list cs
+type ChunkMonad = State ChunkState
 
-createTree :: List -> [Chunk] -> (Tree, [Chunk])
-createTree (List len format) cs = (Tree format nodes, rest)
-  where
-    (nodes, rest) = mapConsume len createNode cs
+getChunk :: ChunkMonad Chunk
+getChunk = state (\(ChunkState (c:cs)) -> (c, ChunkState cs))
 
-createRiff :: RiffChunks -> (Tree, [Chunk])
-createRiff (RiffChunks list cs) = createTree list cs
+createNodes :: Int -> ChunkMonad [Node]
+createNodes 0 = return []
+createNodes len = do
+    c <- getChunk
+    n <- createNode c
+    ns <- createNodes (len - chunkLength c)
+    return (n : ns)
+
+createNode :: Chunk -> ChunkMonad Node
+createNode (DataChunk dat) = return (DataNode (dataId dat) (dataRaw dat))
+createNode (ListChunk list) = TreeNode <$> tree
+  where
+    tree = createTree list
+
+createTree :: List -> ChunkMonad Tree
+createTree (List len format) = do
+        nodes <- createNodes len
+        return (Tree format nodes)
+
+createRiff :: RiffChunks -> Tree
+createRiff (RiffChunks list cs) = evalState (createTree list) (ChunkState cs)
 
 showRiff :: Tree -> String
 showRiff (Tree format cs) = "RIFF:" ++ format ++ showNodes 1 cs
@@ -47,9 +56,9 @@ showNode :: Int -> Node -> String
 showNode ind (TreeNode (Tree format cs)) = indent ind ++ "LIST:" ++ format ++ showNodes (ind + 1) cs
 showNode _ (DataNode i _) = i
 
-parseFile :: String -> IO (Tree, [Chunk])
-parseFile fn = BL.readFile fn >>= return . createRiff . runGet parseRiffChunks
+parseFile :: String -> IO Tree
+parseFile fn = return . createRiff . runGet parseRiffChunks =<< BL.readFile fn
 
 main :: IO ()
-main = BL.getContents >>= putStrLn . showRiff . fst . createRiff . runGet parseRiffChunks
+main = putStrLn . showRiff . createRiff . runGet parseRiffChunks =<< BL.getContents
 
