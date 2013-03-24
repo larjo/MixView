@@ -1,5 +1,5 @@
 module RiffTokens
-    ( 
+    (
       Chunk (DataChunk, ListChunk)
     , RiffChunks (RiffChunks)
     , List (List, listLength, listFormat)
@@ -23,7 +23,7 @@ import Data.Binary.Get ( Get
                        , isEmpty
                        , lookAhead
                        , skip
-                       ) 
+                       )
 -- requires "cabal install binary"
 
 import Control.Monad.Loops (whileM)
@@ -99,7 +99,7 @@ parseList = List <$> (skipFourCC >> parseInt >>= adjustListLength)
 
 -- parse DataChunk
 parseData :: Get Data
-parseData = Data <$> parseFourCC 
+parseData = Data <$> parseFourCC
                  <*> (parseInt >>= parseByteString)
 
 -- parse Chunk

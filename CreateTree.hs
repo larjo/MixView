@@ -2,63 +2,57 @@ import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL (getContents, readFile)
 import Data.List (intercalate)
 import Control.Monad.State
-import Control.Monad.Loops
 import Control.Applicative
 
 import RiffTokens
 
-data Node = DataNode Id Raw
-          | TreeNode Tree
+data Tree = DataNode Data
+          | ListNode Riff
+data Riff = Riff Format [Tree]
 
-data Tree = Tree Format [Node]
-
-data ChunkState = ChunkState
-    { chunks :: [Chunk]
-    } deriving Show
-
-type ChunkMonad = State ChunkState
+type ChunkMonad = State [Chunk]
 
 getChunk :: ChunkMonad Chunk
-getChunk = state (\(ChunkState (c:cs)) -> (c, ChunkState cs))
+getChunk = state (\(c:cs) -> (c, cs))
 
-createNodes :: Int -> ChunkMonad [Node]
-createNodes 0 = return []
-createNodes len = do
+createTrees :: Int -> ChunkMonad [Tree]
+createTrees 0 = return []
+createTrees len = do
     c <- getChunk
-    n <- createNode c
-    ns <- createNodes (len - chunkLength c)
-    return (n : ns)
+    t <- createTree c
+    ts <- createTrees (len - chunkLength c)
+    return (t : ts)
 
-createNode :: Chunk -> ChunkMonad Node
-createNode (DataChunk dat) = return (DataNode (dataId dat) (dataRaw dat))
-createNode (ListChunk list) = TreeNode <$> tree
+createTree :: Chunk -> ChunkMonad Tree
+createTree (DataChunk dat) = return (DataNode dat)
+createTree (ListChunk list) = ListNode <$> tree
   where
-    tree = createTree list
+    tree = createRiff list
 
-createTree :: List -> ChunkMonad Tree
-createTree (List len format) = do
-        nodes <- createNodes len
-        return (Tree format nodes)
+createRiff :: List -> ChunkMonad Riff
+createRiff (List len format) = do
+        ts <- createTrees len
+        return (Riff format ts)
 
-createRiff :: RiffChunks -> Tree
-createRiff (RiffChunks list cs) = evalState (createTree list) (ChunkState cs)
+evalRiff :: RiffChunks -> Riff
+evalRiff (RiffChunks list cs) = evalState (createRiff list) cs
 
-showRiff :: Tree -> String
-showRiff (Tree format cs) = "RIFF:" ++ format ++ showNodes 1 cs
+showRiff :: Riff -> String
+showRiff (Riff format cs) = "RIFF:" ++ format ++ showTrees 1 cs
 
 indent :: Int -> String
 indent ind = '\n' : replicate (ind * 2) ' '
 
-showNodes :: Int -> [Node] -> String
-showNodes ind nodes = '(' : intercalate "," (map (showNode ind) nodes) ++ ")"
+showTrees :: Int -> [Tree] -> String
+showTrees ind nodes = '(' : intercalate "," (map (showTree ind) nodes) ++ ")"
 
-showNode :: Int -> Node -> String
-showNode ind (TreeNode (Tree format cs)) = indent ind ++ "LIST:" ++ format ++ showNodes (ind + 1) cs
-showNode _ (DataNode i _) = i
+showTree :: Int -> Tree -> String
+showTree ind (ListNode (Riff format cs)) = indent ind ++ "LIST:" ++ format ++ showTrees (ind + 1) cs
+showTree _ (DataNode dat) = dataId dat
 
-parseFile :: String -> IO Tree
-parseFile fn = return . createRiff . runGet parseRiffChunks =<< BL.readFile fn
+parseFile :: String -> IO Riff
+parseFile fn = return . evalRiff . runGet parseRiffChunks =<< BL.readFile fn
 
 main :: IO ()
-main = putStrLn . showRiff . createRiff . runGet parseRiffChunks =<< BL.getContents
+main = putStrLn . showRiff . evalRiff . runGet parseRiffChunks =<< BL.getContents
 
