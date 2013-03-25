@@ -12,7 +12,6 @@ module RiffTokens
     , chunkLength
     , dataChunkLength
     , listChunkLength
-    , dataLength
     ) where
 
 import Data.ByteString as B (ByteString, length)
@@ -97,7 +96,7 @@ parseList :: Get List
 parseList = List <$> (skipFourCC >> parseInt >>= adjustListLength)
                  <*> parseFourCC
 
--- parse DataChunk
+-- parse Data
 parseData :: Get Data
 parseData = Data <$> parseFourCC
                  <*> (parseInt >>= parseByteString)
@@ -117,14 +116,11 @@ parseChunks = whileM (not <$> isEmpty) parseChunk
 parseRiffChunks :: Get RiffChunks
 parseRiffChunks = RiffChunks <$> parseList <*> parseChunks
 
-dataLength :: Data -> Len
-dataLength = B.length . dataRaw
-
 surroundingDataLength :: Len -> Len
 surroundingDataLength len = len + len `mod` 2 + 8
 
 dataChunkLength :: Data -> Len
-dataChunkLength = surroundingDataLength . dataLength
+dataChunkLength = surroundingDataLength . B.length . dataRaw
 
 listChunkLength :: List -> Len
 listChunkLength = (+ 12) . listLength

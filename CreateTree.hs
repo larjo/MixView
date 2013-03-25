@@ -1,5 +1,5 @@
 import Data.Binary.Get (runGet)
-import qualified Data.ByteString.Lazy as BL (getContents, readFile)
+import qualified Data.ByteString.Lazy as BL (getContents)
 import Data.List (intercalate)
 import Control.Monad.State (State, state, evalState)
 import Control.Applicative ((<$>), (<*>))
@@ -48,10 +48,7 @@ showTrees ind nodes = '(' : intercalate "," (map (showTree ind) nodes) ++ ")"
 
 showTree :: Int -> Tree -> String
 showTree ind (ListNode riff) = indent ind ++ "LIST:" ++ showRiff riff
-showTree _ (DataNode (Data did _)) = did
-
-parseFile :: String -> IO Riff
-parseFile fn = return . evalRiff . runGet parseRiffChunks =<< BL.readFile fn
+showTree _ (DataNode dat) = show dat
 
 main :: IO ()
 main = putStrLn . showRoot . evalRiff . runGet parseRiffChunks =<< BL.getContents
