@@ -35,10 +35,10 @@ evalRiff :: RiffChunks -> Riff
 evalRiff (RiffChunks list cs) = evalState (createRiff list) cs
 
 showRoot :: Riff -> String
-showRoot riff = "RIFF:" ++ showRiff riff
+showRoot riff = "RIFF:" ++ showRiff 1 riff
 
-showRiff :: Riff -> String
-showRiff (Riff format cs) = format ++ showTrees 1 cs
+showRiff :: Int -> Riff -> String
+showRiff ind (Riff format cs) = format ++ showTrees ind cs
 
 indent :: Int -> String
 indent ind = '\n' : replicate (ind * 2) ' '
@@ -47,7 +47,7 @@ showTrees :: Int -> [Tree] -> String
 showTrees ind nodes = '(' : intercalate "," (map (showTree ind) nodes) ++ ")"
 
 showTree :: Int -> Tree -> String
-showTree ind (ListNode riff) = indent ind ++ "LIST:" ++ showRiff riff
+showTree ind (ListNode riff) = indent ind ++ "LIST:" ++ showRiff (ind + 1) riff
 showTree _ (DataNode dat) = show dat
 
 main :: IO ()
