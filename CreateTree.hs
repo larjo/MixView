@@ -16,6 +16,10 @@ type ChunkMonad = State [Chunk]
 getChunk :: ChunkMonad Chunk
 getChunk = state (\(c:cs) -> (c, cs))
 
+createTree :: Chunk -> ChunkMonad Tree
+createTree (DataChunk dat) = DataNode <$> return dat
+createTree (ListChunk list) = ListNode <$> createRiff list
+
 createTrees :: Int -> ChunkMonad [Tree]
 createTrees 0 = return []
 createTrees len = do
@@ -24,31 +28,27 @@ createTrees len = do
     ts <- createTrees (len - chunkLength c)
     return (t : ts)
 
-createTree :: Chunk -> ChunkMonad Tree
-createTree (DataChunk dat) = DataNode <$> return dat
-createTree (ListChunk list) = ListNode <$> createRiff list
-
 createRiff :: List -> ChunkMonad Riff
 createRiff (List len format) = Riff <$> return format <*> createTrees len
 
 evalRiff :: RiffChunks -> Riff
 evalRiff (RiffChunks list cs) = evalState (createRiff list) cs
 
-showRoot :: Riff -> String
-showRoot riff = "RIFF:" ++ showRiff 1 riff
-
-showRiff :: Int -> Riff -> String
-showRiff ind (Riff format cs) = format ++ showTrees ind cs
-
 indent :: Int -> String
 indent ind = '\n' : replicate (ind * 2) ' '
-
-showTrees :: Int -> [Tree] -> String
-showTrees ind nodes = '(' : intercalate "," (map (showTree ind) nodes) ++ ")"
 
 showTree :: Int -> Tree -> String
 showTree ind (ListNode riff) = indent ind ++ "LIST:" ++ showRiff (ind + 1) riff
 showTree _ (DataNode dat) = show dat
+
+showTrees :: Int -> [Tree] -> String
+showTrees ind nodes = '(' : intercalate "," (map (showTree ind) nodes) ++ ")"
+
+showRiff :: Int -> Riff -> String
+showRiff ind (Riff format cs) = format ++ showTrees ind cs
+
+showRoot :: Riff -> String
+showRoot riff = "RIFF:" ++ showRiff 1 riff
 
 main :: IO ()
 main = putStrLn . showRoot . evalRiff . runGet parseRiffChunks =<< BL.getContents

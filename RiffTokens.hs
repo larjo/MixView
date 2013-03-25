@@ -91,15 +91,15 @@ parseByteString len = do
     skipIfOdd len
     return bs
 
--- parse List
-parseList :: Get List
-parseList = List <$> (skipFourCC >> parseInt >>= adjustListLength)
-                 <*> parseFourCC
-
 -- parse Data
 parseData :: Get Data
 parseData = Data <$> parseFourCC
                  <*> (parseInt >>= parseByteString)
+
+-- parse List
+parseList :: Get List
+parseList = List <$> (skipFourCC >> parseInt >>= adjustListLength)
+                 <*> parseFourCC
 
 -- parse Chunk
 parseChunk :: Get Chunk
@@ -108,7 +108,7 @@ parseChunk = lookAhead parseFourCC >>= parseChunk'
              parseChunk' "LIST" = ListChunk <$> parseList
              parseChunk' _      = DataChunk <$> parseData
 
--- parse a list of tokens
+-- parse Chunks 
 parseChunks :: Get [Chunk]
 parseChunks = whileM (not <$> isEmpty) parseChunk
 
@@ -116,11 +116,10 @@ parseChunks = whileM (not <$> isEmpty) parseChunk
 parseRiffChunks :: Get RiffChunks
 parseRiffChunks = RiffChunks <$> parseList <*> parseChunks
 
-surroundingDataLength :: Len -> Len
-surroundingDataLength len = len + len `mod` 2 + 8
-
 dataChunkLength :: Data -> Len
-dataChunkLength = surroundingDataLength . B.length . dataRaw
+dataChunkLength = surroundingLength . B.length . dataRaw
+  where
+    surroundingLength len = len + len `mod` 2 + 8
 
 listChunkLength :: List -> Len
 listChunkLength = (+ 12) . listLength
