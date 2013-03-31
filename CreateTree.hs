@@ -1,5 +1,10 @@
+module RiffTree (
+                Tree (DataNode, ListNode)
+              , Riff
+              , riffFromBinary) where
+
 import Data.Binary.Get (runGet)
-import qualified Data.ByteString.Lazy as BL (getContents)
+import qualified Data.ByteString.Lazy as BL (getContents, ByteString)
 import Data.List (intercalate)
 import Control.Monad.State (State, state, evalState)
 import Control.Applicative ((<$>), (<*>))
@@ -50,6 +55,9 @@ showRiff ind (Riff format cs) = format ++ showTrees ind cs
 showRoot :: Riff -> String
 showRoot riff = "RIFF:" ++ showRiff 1 riff
 
+riffFromBinary :: BL.ByteString -> Riff
+riffFromBinary = evalRiff . runGet parseRiffChunks
+
 main :: IO ()
-main = putStrLn . showRoot . evalRiff . runGet parseRiffChunks =<< BL.getContents
+main = putStrLn . showRoot . riffFromBinary =<< BL.getContents
 
