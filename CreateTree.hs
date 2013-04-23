@@ -1,5 +1,5 @@
 module RiffTree (
-                Tree (DataNode, ListNode)
+                Tree (Leaf, Forest)
               , Riff
               , riffFromBinary) where
 
@@ -11,8 +11,8 @@ import Control.Applicative ((<$>), (<*>))
 
 import RiffTokens
 
-data Tree = DataNode Data
-          | ListNode Riff
+data Tree = Leaf Data
+          | Forest Riff
 
 data Riff = Riff Format [Tree]
 
@@ -22,8 +22,8 @@ getChunk :: ChunkMonad Chunk
 getChunk = state (\(c:cs) -> (c, cs))
 
 createTree :: Chunk -> ChunkMonad Tree
-createTree (DataChunk dat) = DataNode <$> return dat
-createTree (ListChunk list) = ListNode <$> createRiff list
+createTree (DataChunk dat) = Leaf <$> return dat
+createTree (ListChunk list) = Forest <$> createRiff list
 
 createTrees :: Int -> ChunkMonad [Tree]
 createTrees 0 = return []
@@ -43,8 +43,8 @@ indent :: Int -> String
 indent ind = '\n' : replicate (ind * 2) ' '
 
 showTree :: Int -> Tree -> String
-showTree ind (ListNode riff) = indent ind ++ "LIST:" ++ showRiff (ind + 1) riff
-showTree _ (DataNode dat) = show dat
+showTree ind (Forest riff) = indent ind ++ "LIST:" ++ showRiff (ind + 1) riff
+showTree _ (Leaf dat) = show dat
 
 showTrees :: Int -> [Tree] -> String
 showTrees ind nodes = '(' : intercalate "," (map (showTree ind) nodes) ++ ")"
