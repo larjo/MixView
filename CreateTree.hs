@@ -1,8 +1,8 @@
-module RiffTree (
-                Tree (Leaf, Forest)
+{-module RiffTree (
+                Tree (Leaf, Node)
               , Riff
               , riffFromBinary) where
-
+-}
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL (getContents, ByteString)
 import Data.List (intercalate)
@@ -12,7 +12,7 @@ import Control.Applicative ((<$>), (<*>))
 import RiffTokens
 
 data Tree = Leaf Data
-          | Forest Riff
+          | Node Riff
 
 data Riff = Riff Format [Tree]
 
@@ -23,7 +23,7 @@ getChunk = state (\(c:cs) -> (c, cs))
 
 createTree :: Chunk -> ChunkMonad Tree
 createTree (DataChunk dat) = Leaf <$> return dat
-createTree (ListChunk list) = Forest <$> createRiff list
+createTree (ListChunk list) = Node <$> createRiff list
 
 createTrees :: Int -> ChunkMonad [Tree]
 createTrees 0 = return []
@@ -43,7 +43,7 @@ indent :: Int -> String
 indent ind = '\n' : replicate (ind * 2) ' '
 
 showTree :: Int -> Tree -> String
-showTree ind (Forest riff) = indent ind ++ "LIST:" ++ showRiff (ind + 1) riff
+showTree ind (Node riff) = indent ind ++ "LIST:" ++ showRiff (ind + 1) riff
 showTree _ (Leaf dat) = show dat
 
 showTrees :: Int -> [Tree] -> String
