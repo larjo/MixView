@@ -52,7 +52,7 @@ framesLeft :: Int -> Get Bool
 framesLeft size = do
     br <- fromIntegral <$> bytesRead
     id <- lookAhead (getByteString 4)
-    return $ (B.any (/= 0) id) && (br < size)
+    return $ (B.any ( /= 0) id) && (br < size)
 
 getSize :: Get Int
 getSize = (+ 10) . foldl (\s x -> 128*s + x) 0 . map fromIntegral <$> replicateM 4 getWord8
