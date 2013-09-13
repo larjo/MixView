@@ -71,9 +71,11 @@ insertFrame fm (Frame id str) = M.insert id str fm
 lookupFrame :: FrameMap -> String -> String
 lookupFrame fm k = M.findWithDefault "" k fm
 
-printFrame :: FrameMap -> IO ()
-printFrame fm = print $ intercalate " - " $ map (lookupFrame fm) ["TIT2", "TPE1"]
+titleArtist :: FrameMap -> (String, String)
+titleArtist fm = (lookupFrame fm "TIT2", lookupFrame fm "TPE1")
 
+parseTags :: BL.ByteString -> (String, String)
+parseTags = titleArtist . foldl insertFrame M.empty . runGet parseId3
 -- parse binary
 main :: IO ()
-main = BL.getContents >>= printFrame . foldl insertFrame M.empty . runGet parseId3
+main = BL.getContents >>= print . parseTags
