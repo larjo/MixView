@@ -1,26 +1,17 @@
-import qualified Data.Map as M
-import Data.List (intercalate)
-import qualified Data.ByteString.Lazy as BL (ByteString, getContents)
-import Data.ByteString as B (ByteString, length, any)
-import Data.ByteString.Char8 (unpack)
-import Data.Binary.Get ( Get
-                       , getByteString
-                       , getWord32be
-                       , getWord8
-                       , isEmpty
-                       , lookAhead
-                       , skip
-                       , runGet
-                       , bytesRead
-                       )
--- requires "cabal install binary"
-import Data.Word
-import Data.Text.Encoding
-import Control.Monad (replicateM)
-import Control.Monad.Loops (whileM)
-
-import qualified Data.Text as T
-import Control.Applicative ((<$>), (<*>))
+import           Control.Applicative   ((<$>))
+import           Control.Monad         (replicateM)
+import           Control.Monad.Loops   (whileM)
+import           Data.Binary.Get       (Get, bytesRead, getByteString,
+                                        getWord32be, getWord8, lookAhead,
+                                        runGet, skip)
+import           Data.ByteString       as B (any)
+import           Data.ByteString.Char8 (unpack)
+import qualified Data.ByteString.Lazy  as BL (ByteString, getContents)
+import           Data.List             (intercalate)
+import qualified Data.Map              as M (Map, empty, findWithDefault,
+                                             insert)
+import qualified Data.Text             as T (init, null, unpack)
+import           Data.Text.Encoding    (decodeUtf16LEWith)
 
 data Frame = Frame
     { tag     :: String
@@ -79,3 +70,4 @@ parseTags = titleArtist . foldl insertFrame M.empty . runGet parseId3
 
 main :: IO ()
 main = BL.getContents >>= print . parseTags
+
