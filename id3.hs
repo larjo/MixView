@@ -23,7 +23,7 @@ import qualified Data.Text as T
 import Control.Applicative ((<$>), (<*>))
 
 data Frame = Frame
-    { tag  :: String
+    { tag     :: String
     , content :: String
     } deriving Show
 
