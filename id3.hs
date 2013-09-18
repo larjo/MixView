@@ -4,7 +4,7 @@ import           Control.Monad.Loops   (whileM)
 import           Data.Binary.Get       (Get, bytesRead, getByteString,
                                         getWord32be, getWord8, lookAhead,
                                         runGet, skip)
-import           Data.ByteString       as B (any)
+import qualified Data.ByteString       as B (any)
 import           Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy  as BL (ByteString, getContents)
 import           Data.List             (intercalate)
