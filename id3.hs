@@ -4,7 +4,7 @@ import           Control.Monad.Loops   (whileM)
 import           Data.Binary.Get       (Get, bytesRead, getByteString,
                                         getWord32be, getWord8, lookAhead,
                                         runGet, skip)
-import qualified Data.ByteString       as B (any)
+import qualified Data.ByteString       as B (any, ByteString)
 import           Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy  as BL (ByteString, getContents)
 import           Data.List             (intercalate)
@@ -13,10 +13,7 @@ import qualified Data.Map              as M (Map, empty, findWithDefault,
 import qualified Data.Text             as T (init, null, unpack)
 import           Data.Text.Encoding    (decodeUtf16LEWith)
 
-data Frame = Frame
-    { tag     :: String
-    , content :: String
-    } deriving Show
+data Frame = Frame String String
 
 type FrameMap = M.Map String String
 
@@ -26,38 +23,39 @@ header = unpack <$> getByteString 3
 version :: Get String
 version = intercalate "." . map show <$> replicateM 2 getWord8
 
+showRaw :: B.ByteString -> String
 showRaw = T.unpack . safeInit . decodeUtf16LEWith (\_ _ -> Nothing)
   where
     safeInit x = if T.null x then x else T.init x
 
 frame :: Get Frame
 frame = do
-    id <- getByteString 4
+    i <- getByteString 4
     size <- fromIntegral <$> getWord32be
     skip 2 -- skip flags
     skip 3 -- extra + bom
     bs <- getByteString $ size - 3
-    return $ Frame (unpack id) (showRaw bs)
+    return $ Frame (unpack i) (showRaw bs)
 
 framesLeft :: Int -> Get Bool
 framesLeft size = do
     br <- fromIntegral <$> bytesRead
-    id <- lookAhead (getByteString 4)
-    return $ (B.any ( /= 0) id) && (br < size)
+    i <- lookAhead (getByteString 4)
+    return $ (B.any ( /= 0) i) && (br < size)
 
 getSize :: Get Int
 getSize = (+ 10) . foldl (\s x -> 128*s + x) 0 . map fromIntegral <$> replicateM 4 getWord8
 
 parseId3 :: Get [Frame]
 parseId3 = do
-    header
-    version
+    _ <- header
+    _ <- version
     skip 1 -- skip flags
     size <- getSize
     whileM (framesLeft size) frame
 
 insertFrame :: FrameMap -> Frame -> FrameMap
-insertFrame fm (Frame id str) = M.insert id str fm
+insertFrame fm (Frame i str) = M.insert i str fm
 
 lookupFrame :: FrameMap -> String -> String
 lookupFrame fm k = M.findWithDefault "" k fm
