@@ -59,5 +59,5 @@ riffFromBinary :: BL.ByteString -> Riff
 riffFromBinary = evalRiff . runGet parseRiffChunks
 
 main :: IO ()
-main = putStrLn . showRoot . riffFromBinary =<< BL.getContents
+main = BL.getContents >>= putStrLn . showRoot . riffFromBinary
 
