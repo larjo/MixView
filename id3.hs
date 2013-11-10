@@ -1,3 +1,8 @@
+module Id3
+    (
+      parseTitleArtist
+    ) where
+
 import           Control.Applicative   ((<$>))
 import           Control.Monad         (replicateM)
 import           Control.Monad.Loops   (whileM)
