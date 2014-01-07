@@ -1,8 +1,3 @@
-module Id3
-    (
-      parseTitleArtist
-    ) where
-
 import           Control.Applicative   ((<$>))
 import           Control.Monad         (replicateM)
 import           Control.Monad.Loops   (whileM)
@@ -46,7 +41,7 @@ framesLeft :: Int -> Get Bool
 framesLeft size = do
     br <- fromIntegral <$> bytesRead
     i <- lookAhead (getByteString 4)
-    return $ (B.any ( /= 0) i) && (br < size)
+    return $ B.any ( /= 0) i && (br < size)
 
 getSize :: Get Int
 getSize = (+ 10) . foldl (\s x -> 128*s + x) 0 . map fromIntegral <$> replicateM 4 getWord8
