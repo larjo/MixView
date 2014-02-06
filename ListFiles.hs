@@ -8,13 +8,16 @@ import RiffTokens
 getChunks :: RiffChunks -> [Chunk]
 getChunks (RiffChunks _ cs) = cs
 
-printTRKF :: Chunk -> IO ()
-printTRKF (DataChunk (Data "TRKF" d)) =
-    putStrLn $ showRaw d
-  where 
-    showRaw = T.unpack . T.init . decodeUtf16LE
+isFilename :: Chunk -> Bool
+isFilename (DataChunk (Data "TRKF" d)) = True
+isFilename _ = False
 
-printTRKF _ = return ()
+chunkToFilename :: Chunk -> IO ()
+chunkToFilename (DataChunk (Data "TRKF" d)) =
+    showRaw d
+  where
+    showRaw = T.unpack . T.init . decodeUtf16LE
+chunkToFilename _ = ""
 
 main :: IO ()
 main = BL.getContents >>= mapM_ printTRKF . getChunks . runGet parseRiffChunks
