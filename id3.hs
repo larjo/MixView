@@ -35,18 +35,17 @@ showRaw = T.unpack . safeInit . decodeUtf16LEWith (\_ _ -> Nothing)
 
 frame :: Get Frame
 frame = do
-    i <- getByteString 4
-    size <- fromIntegral <$> getWord32be
-    skip 2 -- skip flags
-    skip 3 -- extra + bom
-    bs <- getByteString $ size - 3
-    return $ Frame (unpack i) (showRaw bs)
+    id <- getByteString 4
+    size <- getWord32be
+    skip 5 -- skip flags, extra, bom
+    bs <- getByteString $ fromIntegral size - 3
+    return $ Frame (unpack id) (showRaw bs)
 
 framesLeft :: Int -> Get Bool
 framesLeft size = do
     br <- fromIntegral <$> bytesRead
     i <- lookAhead (getByteString 4)
-    return $ (B.any ( /= 0) i) && (br < size)
+    return $ B.any ( /= 0) i && (br < size)
 
 getSize :: Get Int
 getSize = (+ 10) . foldl (\s x -> 128*s + x) 0 . map fromIntegral <$> replicateM 4 getWord8
