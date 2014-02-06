@@ -23,7 +23,6 @@ import Data.Binary.Get ( Get
                        , lookAhead
                        , skip
                        )
--- requires "cabal install binary"
 
 import Control.Monad.Loops (whileM)
 -- requires "cabal install monad-loops"
