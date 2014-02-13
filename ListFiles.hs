@@ -4,6 +4,7 @@ import Data.Text.Encoding (decodeUtf16LE)
 import Data.Binary.Get
 
 import RiffTokens
+import Id3
 
 getChunks :: RiffChunks -> [Chunk]
 getChunks (RiffChunks _ cs) = cs
