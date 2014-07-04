@@ -13,7 +13,7 @@ isFilename :: Chunk -> Bool
 isFilename (DataChunk (Data "TRKF" d)) = True
 isFilename _ = False
 
-chunkToFilename :: Chunk -> IO ()
+chunkToFilename :: Chunk -> String
 chunkToFilename (DataChunk (Data "TRKF" d)) =
     showRaw d
   where
@@ -21,4 +21,4 @@ chunkToFilename (DataChunk (Data "TRKF" d)) =
 chunkToFilename _ = ""
 
 main :: IO ()
-main = BL.getContents >>= mapM_ printTRKF . getChunks . runGet parseRiffChunks
+main = BL.getContents >>= mapM_ putStrLn . map chunkToFilename . filter isFilename . getChunks . runGet parseRiffChunks
