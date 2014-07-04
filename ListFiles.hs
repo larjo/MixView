@@ -10,11 +10,8 @@ getChunks :: RiffChunks -> [Chunk]
 getChunks (RiffChunks _ cs) = cs
 
 chunkToFilename :: Chunk -> Maybe String
-chunkToFilename (DataChunk (Data "TRKF" d)) =
-    Just $ showRaw d
-  where
-    showRaw = T.unpack . T.init . decodeUtf16LE
+chunkToFilename (DataChunk (Data "TRKF" d)) = Just . T.unpack . T.init . decodeUtf16LE $ d
 chunkToFilename _ = Nothing
 
 main :: IO ()
-main = BL.getContents >>= mapM_ putStrLn . catMaybes . map chunkToFilename . getChunks . runGet parseRiffChunks
+main = BL.getContents >>= mapM_ putStrLn . mapMaybe chunkToFilename . getChunks . runGet parseRiffChunks
