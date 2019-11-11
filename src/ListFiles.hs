@@ -1,3 +1,5 @@
+module ListFiles
+    where
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import Data.Text.Encoding (decodeUtf16LE)
@@ -13,5 +15,5 @@ chunkToFilename :: Chunk -> Maybe String
 chunkToFilename (DataChunk (Data "TRKF" d)) = Just . T.unpack . T.init . decodeUtf16LE $ d
 chunkToFilename _ = Nothing
 
-main :: IO ()
-main = BL.getContents >>= mapM_ putStrLn . mapMaybe chunkToFilename . getChunks . runGet parseRiffChunks
+listFiles :: IO ()
+listFiles = BL.getContents >>= mapM_ putStrLn . mapMaybe chunkToFilename . getChunks . runGet parseRiffChunks

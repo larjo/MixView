@@ -71,6 +71,6 @@ parseTags tags = mapTags tags . foldl insertFrame M.empty . runGet parseId3
 parseTitleArtist :: BL.ByteString -> [String]
 parseTitleArtist = parseTags ["TIT2", "TPE1"]
 
-main :: IO ()
-main = BL.getContents >>= print . parseTitleArtist
+id3 :: IO ()
+id3 = BL.getContents >>= print . parseTitleArtist
 

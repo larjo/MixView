@@ -1,8 +1,9 @@
-{-module RiffTree (
+module CreateTree (
                 Tree (Leaf, Node)
               , Riff
-              , riffFromBinary) where
--}
+              , riffFromBinary
+              , showRoot) where
+
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL (getContents, ByteString)
 import Data.List (intercalate)
@@ -58,6 +59,4 @@ showRoot riff = "RIFF:" ++ showRiff 1 riff
 riffFromBinary :: BL.ByteString -> Riff
 riffFromBinary = evalRiff . runGet parseRiffChunks
 
-main :: IO ()
-main = BL.getContents >>= putStrLn . showRoot . riffFromBinary
 

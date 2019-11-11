@@ -1,3 +1,5 @@
+module ListTokens where
+
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL (ByteString, getContents)
 import RiffTokens
@@ -10,5 +12,5 @@ printRiff (RiffChunks l cs) = do
 getChunks :: BL.ByteString -> RiffChunks
 getChunks = runGet parseRiffChunks
 
-main :: IO ()
-main = BL.getContents >>= printRiff . getChunks
+listTokens :: IO ()
+listTokens = BL.getContents >>= printRiff . getChunks

@@ -1,0 +1,54 @@
+name:                mixview
+version:             0.1.0.0
+github:              "larjo/mixview"
+license:             BSD3
+author:              "Lars Jonsson Baker"
+maintainer:          "lars@jonssonconsulting.com"
+copyright:           "2019 Lars Jonsson Baker"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/larjo/mixview#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- monad-loops
+- binary
+- bytestring
+- containers
+- text
+- mtl
+
+library:
+  source-dirs: src
+
+executables:
+  mixview-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - mixview
+
+tests:
+  mixview-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - mixview
