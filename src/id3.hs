@@ -17,7 +17,6 @@ import qualified Data.Text             as T (init, null, unpack)
 import           Data.Text.Encoding    (decodeUtf16LEWith)
 
 data Frame = Frame String String
-
 type FrameMap = M.Map String String
 
 header :: Get String
@@ -41,12 +40,15 @@ frame = do
 
 framesLeft :: Int -> Get Bool
 framesLeft size = do
-    br <- fromIntegral <$> bytesRead
+    br <- bytesRead
     i <- lookAhead (getByteString 4)
-    return $ B.any ( /= 0) i && (br < size)
+    return $ B.any (/= 0) i && (fromIntegral br < size)
 
 getSize :: Get Int
-getSize = (+ 10) . foldl (\s x -> 128*s + x) 0 . map fromIntegral <$> replicateM 4 getWord8
+getSize = do
+    words <- replicateM 4 getWord8
+    let size = foldl (\s x -> 128 * s + x) 0 $ map fromIntegral words
+    return (size + 10)
 
 parseId3 :: Get [Frame]
 parseId3 = do
@@ -73,4 +75,3 @@ parseTitleArtist = parseTags ["TIT2", "TPE1"]
 
 id3 :: IO ()
 id3 = BL.getContents >>= print . parseTitleArtist
-

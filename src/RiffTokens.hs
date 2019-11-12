@@ -1,6 +1,5 @@
 module RiffTokens
-    (
-      Chunk (DataChunk, ListChunk)
+    ( Chunk (DataChunk, ListChunk)
     , RiffChunks (RiffChunks)
     , List (List, listLength, listFormat)
     , Data (Data, dataId, dataRaw)
@@ -14,6 +13,8 @@ module RiffTokens
     , listChunkLength
     ) where
 
+import Control.Monad.Loops (whileM)
+import Control.Applicative ((<$>), (<*>))
 import Data.ByteString as B (ByteString, length)
 import Data.ByteString.Char8 (unpack)
 import Data.Binary.Get ( Get
@@ -23,11 +24,6 @@ import Data.Binary.Get ( Get
                        , lookAhead
                        , skip
                        )
-
-import Control.Monad.Loops (whileM)
--- requires "cabal install monad-loops"
-
-import Control.Applicative ((<$>), (<*>))
 import Data.List (intercalate)
 
 type Id = String
@@ -78,8 +74,8 @@ parseFourCC = unpack <$> getByteString 4
 parseInt :: Get Int
 parseInt = fromIntegral <$> getWord32le
 
-adjustListLength :: Int -> Get Int
-adjustListLength i = return (i - 4)
+adjustListLength :: Int -> Int
+adjustListLength i = i - 4
 
 skipIfOdd :: Int -> Get ()
 skipIfOdd = skip . (`mod` 2)
@@ -92,20 +88,28 @@ parseByteString len = do
 
 -- parse Data
 parseData :: Get Data
-parseData = Data <$> parseFourCC
-                 <*> (parseInt >>= parseByteString)
+parseData = do
+    id <- parseFourCC
+    len <- parseInt
+    rawData <- parseByteString len
+    return $ Data id rawData
 
 -- parse List
 parseList :: Get List
-parseList = List <$> (skipFourCC >> parseInt >>= adjustListLength)
-                 <*> parseFourCC
+parseList = do
+    skipFourCC
+    len <- parseInt
+    fourCC <- parseFourCC
+    return $ List (adjustListLength len) fourCC
 
 -- parse Chunk
 parseChunk :: Get Chunk
-parseChunk = lookAhead parseFourCC >>= parseChunk'
-           where
-             parseChunk' "LIST" = ListChunk <$> parseList
-             parseChunk' _      = DataChunk <$> parseData
+parseChunk = do
+    id <- lookAhead parseFourCC
+    go id
+    where
+        go "LIST" = ListChunk <$> parseList
+        go _      = DataChunk <$> parseData
 
 -- parse Chunks 
 parseChunks :: Get [Chunk]

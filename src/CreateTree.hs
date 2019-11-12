@@ -23,7 +23,7 @@ getChunk :: ChunkMonad Chunk
 getChunk = state (\(c:cs) -> (c, cs))
 
 createTree :: Chunk -> ChunkMonad Tree
-createTree (DataChunk dat) = Leaf <$> return dat
+createTree (DataChunk dat) = return $ Leaf dat
 createTree (ListChunk list) = Node <$> createRiff list
 
 createTrees :: Int -> ChunkMonad [Tree]
@@ -35,7 +35,9 @@ createTrees len = do
     return (t : ts)
 
 createRiff :: List -> ChunkMonad Riff
-createRiff (List len format) = Riff <$> return format <*> createTrees len
+createRiff (List len format) = do
+    trees <- createTrees len
+    return $ Riff format trees
 
 evalRiff :: RiffChunks -> Riff
 evalRiff (RiffChunks list cs) = evalState (createRiff list) cs
@@ -58,5 +60,3 @@ showRoot riff = "RIFF:" ++ showRiff 1 riff
 
 riffFromBinary :: BL.ByteString -> Riff
 riffFromBinary = evalRiff . runGet parseRiffChunks
-
-
