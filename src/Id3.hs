@@ -1,49 +1,51 @@
 module Id3
-    ( parseTitleArtist ) where
+    ( parseTitleArtist, id3, listTags, listIds ) where
 
 import           Control.Applicative   ((<$>))
-import           Control.Monad         (replicateM)
+import           Control.Monad         (replicateM, unless)
 import           Control.Monad.Loops   (whileM)
 import           Data.Binary.Get       (Get, bytesRead, getByteString,
                                         getWord32be, getWord8, lookAhead,
                                         runGet, skip)
-import qualified Data.ByteString       as B (any, ByteString)
+import qualified Data.ByteString       as B (any, ByteString, takeWhile)
 import           Data.ByteString.Char8 (unpack)
 import qualified Data.ByteString.Lazy  as BL (ByteString, getContents)
+import qualified Data.ByteString.Encoding as BE (decode, latin1, utf16, utf16le)
 import           Data.List             (intercalate)
 import qualified Data.Map              as M (Map, empty, findWithDefault,
                                              insert)
-import qualified Data.Text             as T (init, null, unpack)
-import           Data.Text.Encoding    (decodeUtf16LEWith)
+import qualified Data.Text             as T (init, null, unpack, last)
+import           Data.Text.Encoding    (decodeUtf16LEWith, decodeUtf16BEWith)
 
 data Frame = Frame String String
 type FrameMap = M.Map String String
 
-header :: Get String
-header = unpack <$> getByteString 3
+getHeader :: Get String
+getHeader = unpack <$> getByteString 3
 
-version :: Get String
-version = intercalate "." . map show <$> replicateM 2 getWord8
+getVersion :: Get String
+getVersion = intercalate "." . map show <$> replicateM 2 getWord8
 
 showRaw :: B.ByteString -> String
-showRaw = T.unpack . safeInit . decodeUtf16LEWith (\_ _ -> Nothing)
+showRaw = T.unpack . BE.decode BE.utf16
   where
-    safeInit x = if T.null x then x else T.init x
+    safeInit x = if not (T.null x) && T.last x == '\0' then T.init x else x
 
 frame :: Get Frame
 frame = do
     id <- getByteString 4
     size <- getWord32be
-    skip 5 -- skip flags, extra, bom
-    bs <- getByteString $ fromIntegral size - 3
+    skip 2 -- skip flags
+    skip 1
+    bs <- getByteString $ fromIntegral size - 1
     return $ Frame (unpack id) (showRaw bs)
 
 framesLeft :: Int -> Get Bool
 framesLeft size = do
     br <- bytesRead
-    i <- lookAhead (getByteString 4)
-    return $ B.any (/= 0) i && (fromIntegral br < size)
-
+    -- i <- lookAhead (getByteString 4)
+    -- return $ B.any (/= 0) i && (fromIntegral br < size)
+    return (fromIntegral br < size)
 getSize :: Get Int
 getSize = do
     words <- replicateM 4 getWord8
@@ -52,11 +54,14 @@ getSize = do
 
 parseId3 :: Get [Frame]
 parseId3 = do
-    _ <- header
-    _ <- version
-    skip 1 -- skip flags
-    size <- getSize
-    whileM (framesLeft size) frame
+    header <- getHeader
+    if (header /= "ID3")
+    then return []
+    else do
+        version <- getVersion
+        skip 1 -- skip flags
+        size <- getSize
+        whileM (framesLeft size) frame
 
 insertFrame :: FrameMap -> Frame -> FrameMap
 insertFrame fm (Frame i str) = M.insert i str fm
@@ -73,5 +78,11 @@ parseTags tags = mapTags tags . foldl insertFrame M.empty . runGet parseId3
 parseTitleArtist :: BL.ByteString -> [String]
 parseTitleArtist = parseTags ["TIT2", "TPE1"]
 
-id3 :: IO ()
-id3 = BL.getContents >>= print . parseTitleArtist
+id3 :: BL.ByteString -> String
+id3 = show . parseTitleArtist
+
+listTags :: BL.ByteString -> String
+listTags bs = show $ map (\(Frame id tag) -> id ++ ":" ++ tag) $ runGet parseId3 bs
+
+listIds :: BL.ByteString -> String
+listIds bs = show $ map (\(Frame id tag) -> id) $ runGet parseId3 bs

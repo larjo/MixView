@@ -24,6 +24,7 @@ dependencies:
 - monad-loops
 - binary
 - bytestring
+- bytestring-encoding
 - containers
 - text
 - mtl

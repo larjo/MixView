@@ -1,16 +1,17 @@
-module ListTokens where
+module ListTokens
+    (listTokens)
+    where
 
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL (ByteString, getContents)
 import RiffTokens
 
-printRiff :: RiffChunks -> IO ()
-printRiff (RiffChunks l cs) = do
-    print l
-    mapM_ print cs
+showRiff :: RiffChunks -> String
+showRiff (RiffChunks l cs) =
+    (show l) ++ ":" ++ (show cs)
 
 getChunks :: BL.ByteString -> RiffChunks
 getChunks = runGet parseRiffChunks
 
-listTokens :: IO ()
-listTokens = BL.getContents >>= printRiff . getChunks
+listTokens :: BL.ByteString -> String
+listTokens = showRiff . getChunks
