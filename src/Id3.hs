@@ -1,23 +1,23 @@
 module Id3
-    ( parseTitleArtist
-    , id3
+    ( id3
+    , listIds
     , listTags
-    , listIds ) where
+    , parseTitleArtist ) where
 
-import           Control.Applicative   ((<$>))
-import           Control.Monad         (replicateM, unless)
-import           Control.Monad.Loops   (whileM)
-import           Data.Binary.Get       (Get, bytesRead, getByteString, getWord32be, getWord8, lookAhead, runGet, skip)
-import qualified Data.ByteString       as B (ByteString, all, drop , reverse, uncons )
-import qualified Data.ByteString.Char8 as B8 (unpack)
-import qualified Data.ByteString.Lazy  as BL (ByteString, getContents)
-import qualified Data.ByteString.Encoding as BE (decode, latin1, utf16, utf8)
-import           Data.List             (intercalate)
-import qualified Data.Map              as M (Map, empty, findWithDefault, insert)
-import qualified Data.Text             as T (init, null, unpack, last, Text)
-import           Data.Text.Encoding    (decodeUtf16LEWith, decodeUtf16BEWith)
-import           Data.Maybe            (fromMaybe, catMaybes)
-import           Data.Word             (Word8)
+import Control.Applicative
+import Control.Monad
+import Control.Monad.Loops
+import Data.Binary.Get
+import Data.List
+import Data.Maybe
+import Data.Word
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString.Encoding as BE
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Map as M
+import qualified Data.Text as T
+
 data Frame = Frame String String
 type FrameMap = M.Map String String
 
@@ -82,7 +82,7 @@ parseId3 = do
         skip 1 -- skip flags
         size <- getSize
         frames <- whileM (framesLeft size) getFrame
-        return $ Frame "VER" version : Frame "SIZE" (show size) : catMaybes frames
+        return $ Frame "VER" version : catMaybes frames
 
 insertFrame :: FrameMap -> Frame -> FrameMap
 insertFrame fm (Frame i str) = M.insert i str fm
@@ -103,7 +103,7 @@ id3 :: BL.ByteString -> String
 id3 = show . parseTitleArtist
 
 listTags :: BL.ByteString -> String
-listTags bs = show $ map (\(Frame id tag) -> id ++ ":" ++ tag) $ runGet parseId3 bs
+listTags = show . map (\(Frame id tag) -> id ++ ":" ++ tag) . runGet parseId3
 
 listIds :: BL.ByteString -> String
-listIds bs = show $ map (\(Frame id tag) -> id) $ runGet parseId3 bs
+listIds = show . map (\(Frame id tag) -> id) . runGet parseId3

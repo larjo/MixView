@@ -1,14 +1,14 @@
-module CreateTree (
+module RiffTree (
     Tree (Leaf, Node)
     , Riff
     , riffFromBinary
     , showRoot) where
 
-import Data.Binary.Get (runGet)
-import qualified Data.ByteString.Lazy as BL (getContents, ByteString)
-import Data.List (intercalate)
-import Control.Monad.State (State, state, evalState)
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative
+import Control.Monad.State
+import Data.Binary.Get
+import Data.List
+import qualified Data.ByteString.Lazy as BL
 
 import RiffTokens
 

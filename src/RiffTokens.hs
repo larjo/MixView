@@ -1,32 +1,29 @@
 module RiffTokens
     ( Chunk (DataChunk, ListChunk)
-    , RiffChunks (RiffChunks)
-    , List (List, listLength, listFormat)
     , Data (Data, dataId, dataRaw)
+    , Format
     , Id
     , Len
-    , Format
+    , List (List, listLength, listFormat)
     , Raw
-    , parseRiffChunks
+    , RiffChunks (RiffChunks)
     , chunkLength
     , dataChunkLength
     , listChunkLength
-    ) where
+    , listFiles
+    , listTokens
+    , parseRiffChunks ) where
 
-import Control.Monad.Loops (whileM)
-import Control.Applicative ((<$>), (<*>))
-import Data.ByteString as B (ByteString, length)
-import Data.ByteString.Char8 (unpack)
+import Control.Applicative
+import Control.Monad.Loops
 import Data.Binary.Get
-    ( Get
-    , getByteString
-    , getWord32le
-    , isEmpty
-    , lookAhead
-    , skip
-    )
-
-import Data.List (intercalate)
+import Data.ByteString.Char8
+import Data.Maybe
+import Data.Text.Encoding        
+import qualified Data.List as DL
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text as T
 
 type Id = String
 type Len = Int
@@ -49,7 +46,7 @@ data Chunk = DataChunk Data
 data RiffChunks = RiffChunks List [Chunk] -- RiffChunks = List(Data|List)*
 
 formatChunk :: [String] -> String
-formatChunk = intercalate ":"
+formatChunk = DL.intercalate ":"
 
 instance Show Data where
     show x = formatChunk [ show $ dataChunkLength x
@@ -133,3 +130,22 @@ listChunkLength = (+ 12) . listLength
 chunkLength :: Chunk -> Len
 chunkLength (DataChunk d) = dataChunkLength d
 chunkLength (ListChunk l) = listChunkLength l
+
+showRiff :: RiffChunks -> String
+showRiff (RiffChunks l cs) =
+    (show l) ++ ":" ++ (show cs)
+
+listTokens :: BL.ByteString -> String
+listTokens = showRiff . runGet parseRiffChunks
+
+getChunks :: RiffChunks -> [Chunk]
+getChunks (RiffChunks _ cs) = cs
+
+chunkToFilename :: Chunk -> Maybe String
+chunkToFilename (DataChunk (Data "TRKF" d)) = Just . T.unpack . T.init . decodeUtf16LE $ d
+chunkToFilename (DataChunk (Data "info" d)) = Just . show $ d
+chunkToFilename (DataChunk (Data "prof" d)) = Just . show $ d
+chunkToFilename _ = Nothing
+
+listFiles :: BL.ByteString -> String
+listFiles = show . mapMaybe chunkToFilename . getChunks . runGet parseRiffChunks
