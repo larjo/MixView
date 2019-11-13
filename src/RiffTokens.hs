@@ -87,10 +87,10 @@ parseByteString len = do
 -- parse Data
 parseData :: Get Data
 parseData = do
-    id <- parseFourCC
+    fourCC <- parseFourCC
     len <- parseInt
     rawData <- parseByteString len
-    return $ Data id rawData
+    return $ Data fourCC rawData
 
 -- parse List
 parseList :: Get List
@@ -103,8 +103,8 @@ parseList = do
 -- parse Chunk
 parseChunk :: Get Chunk
 parseChunk = do
-    id <- lookAhead parseFourCC
-    go id
+    fourCC <- lookAhead parseFourCC
+    go fourCC
     where
         go "LIST" = ListChunk <$> parseList
         go _      = DataChunk <$> parseData

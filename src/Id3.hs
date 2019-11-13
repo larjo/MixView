@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Id3
     ( id3
     , listIds
@@ -37,10 +38,11 @@ decodeText encoding textBs =
         0 -> BE.decode BE.latin1 textBs
         x | x == 1 || x == 2 -> BE.decode BE.utf16 $ removeTerminator 2 textBs
         3 -> BE.decode BE.utf8 $ removeTerminator 1 textBs
-                  
+        _ -> ""
+
 showText :: String -> B.ByteString -> Maybe String
-showText id bs =
-    if head id == 'T'
+showText frameid bs =
+    if head frameid == 'T'
     then do
         (encoding, textBs) <- B.uncons bs
         return $ T.unpack $ decodeText encoding textBs
@@ -48,12 +50,11 @@ showText id bs =
 
 getFrame :: Get (Maybe Frame)
 getFrame = do
-    id <- B8.unpack <$> getByteString 4
+    frameid <- B8.unpack <$> getByteString 4
     size <- fromIntegral <$> getWord32be
     skip 2 -- skip flags
     bs <- getByteString size
-    br <- bytesRead
-    return $ fmap (\raw -> Frame id raw) $ showText id bs
+    return $ fmap (\raw -> Frame frameid raw) $ showText frameid bs
 
 framesLeft :: Int -> Get Bool
 framesLeft size = do
@@ -66,8 +67,8 @@ framesLeft size = do
 
 getSize :: Get Int
 getSize = do
-    words <- replicateM 4 getWord8
-    let size = foldl (\s x -> 128 * s + (fromIntegral x)) 0 words
+    sizeW8 <- replicateM 4 getWord8
+    let size = foldl (\s x -> 128 * s + (fromIntegral x)) 0 sizeW8
     return $ size + 10
 
 parseId3 :: Get [Frame]
@@ -101,7 +102,7 @@ id3 :: BL.ByteString -> String
 id3 = show . parseTitleArtist
 
 listTags :: BL.ByteString -> String
-listTags = show . map (\(Frame id tag) -> id ++ ":" ++ tag) . runGet parseId3
+listTags = show . map (\(Frame frameId tag) -> frameId ++ ":" ++ tag) . runGet parseId3
 
 listIds :: BL.ByteString -> String
-listIds = show . map (\(Frame id tag) -> id) . runGet parseId3
+listIds = show . map (\(Frame frameId _tag) -> frameId) . runGet parseId3

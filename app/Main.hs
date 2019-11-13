@@ -24,6 +24,7 @@ parse [ command, filePath ] = do
     execute command bs
 parse _ = usage >> exit
 
+usage :: IO ()
 usage = do
     putStrLn "Usage: mixview command [file]"
     putStrLn "command:"
@@ -33,6 +34,7 @@ usage = do
     putStrLn "riff-tree"
     putStrLn "riff-files"
     putStrLn "riff-tokens"    
+exit :: IO a
 exit    = exitWith ExitSuccess
 -- die     = exitWith (ExitFailure 1)
 
