@@ -4,7 +4,6 @@ module RiffTree (
     , riffFromBinary
     , showRoot) where
 
-import Control.Applicative
 import Control.Monad.State
 import Data.Binary.Get
 import Data.List

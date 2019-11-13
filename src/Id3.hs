@@ -4,11 +4,9 @@ module Id3
     , listTags
     , parseTitleArtist ) where
 
-import Control.Applicative
 import Control.Monad
 import Control.Monad.Loops
 import Data.Binary.Get
-import Data.List
 import Data.Maybe
 import Data.Word
 import qualified Data.ByteString as B

@@ -1,5 +1,3 @@
-import Control.Applicative
-import Data.Binary.Get
 import System.Environment
 import System.Exit
 import qualified Data.ByteString.Lazy as BL
@@ -36,7 +34,7 @@ usage = do
     putStrLn "riff-files"
     putStrLn "riff-tokens"    
 exit    = exitWith ExitSuccess
-die     = exitWith (ExitFailure 1)
+-- die     = exitWith (ExitFailure 1)
 
 main :: IO ()
 main = getArgs >>= parse >>= putStrLn 

@@ -14,7 +14,6 @@ module RiffTokens
     , listTokens
     , parseRiffChunks ) where
 
-import Control.Applicative
 import Control.Monad.Loops
 import Data.Binary.Get
 import Data.ByteString.Char8
