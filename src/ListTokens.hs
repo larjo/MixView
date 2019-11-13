@@ -1,6 +1,5 @@
 module ListTokens
-    (listTokens)
-    where
+    ( listTokens ) where
 
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL (ByteString, getContents)

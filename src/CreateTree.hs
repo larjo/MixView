@@ -1,8 +1,8 @@
 module CreateTree (
-                Tree (Leaf, Node)
-              , Riff
-              , riffFromBinary
-              , showRoot) where
+    Tree (Leaf, Node)
+    , Riff
+    , riffFromBinary
+    , showRoot) where
 
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL (getContents, ByteString)

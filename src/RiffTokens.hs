@@ -17,13 +17,15 @@ import Control.Monad.Loops (whileM)
 import Control.Applicative ((<$>), (<*>))
 import Data.ByteString as B (ByteString, length)
 import Data.ByteString.Char8 (unpack)
-import Data.Binary.Get ( Get
-                       , getByteString
-                       , getWord32le
-                       , isEmpty
-                       , lookAhead
-                       , skip
-                       )
+import Data.Binary.Get
+    ( Get
+    , getByteString
+    , getWord32le
+    , isEmpty
+    , lookAhead
+    , skip
+    )
+
 import Data.List (intercalate)
 
 type Id = String
@@ -120,9 +122,10 @@ parseRiffChunks :: Get RiffChunks
 parseRiffChunks = RiffChunks <$> parseList <*> parseChunks
 
 dataChunkLength :: Data -> Len
-dataChunkLength = surroundingLength . B.length . dataRaw
-  where
-    surroundingLength len = len + len `mod` 2 + 8
+dataChunkLength =
+    surroundingLength . B.length . dataRaw
+    where
+        surroundingLength len = len + len `mod` 2 + 8
 
 listChunkLength :: List -> Len
 listChunkLength = (+ 12) . listLength
