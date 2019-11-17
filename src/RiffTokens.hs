@@ -6,13 +6,13 @@ module RiffTokens
     , Len
     , List (List, listLength, listFormat)
     , Raw
-    , RiffChunks (RiffChunks)
+    , RiffFile (RiffFile)
     , chunkLength
     , dataChunkLength
     , listChunkLength
     , listFiles
     , listTokens
-    , parseRiffChunks ) where
+    , parseRiffFile ) where
 
 import Control.Monad.Loops
 import Data.Binary.Get
@@ -42,7 +42,7 @@ data List = List
 data Chunk = DataChunk Data
            | ListChunk List
 
-data RiffChunks = RiffChunks List [Chunk] -- RiffChunks = List(Data|List)*
+data RiffFile = RiffFile List [Chunk] -- RiffFile = List(Data|List)*
 
 formatChunk :: [String] -> String
 formatChunk = DL.intercalate ":"
@@ -114,8 +114,8 @@ parseChunks :: Get [Chunk]
 parseChunks = whileM (not <$> isEmpty) parseChunk
 
 -- parse a complete riff file
-parseRiffChunks :: Get RiffChunks
-parseRiffChunks = RiffChunks <$> parseList <*> parseChunks
+parseRiffFile :: Get RiffFile
+parseRiffFile = RiffFile <$> parseList <*> parseChunks
 
 dataChunkLength :: Data -> Len
 dataChunkLength =
@@ -130,21 +130,19 @@ chunkLength :: Chunk -> Len
 chunkLength (DataChunk d) = dataChunkLength d
 chunkLength (ListChunk l) = listChunkLength l
 
-showRiff :: RiffChunks -> String
-showRiff (RiffChunks l cs) =
-    (show l) ++ ":" ++ (show cs)
+showRiff :: RiffFile -> String
+showRiff (RiffFile l cs) =
+    (show l) ++ ":::" ++ (show cs)
 
 listTokens :: BL.ByteString -> String
-listTokens = showRiff . runGet parseRiffChunks
+listTokens = showRiff . runGet parseRiffFile
 
-getChunks :: RiffChunks -> [Chunk]
-getChunks (RiffChunks _ cs) = cs
+getChunks :: RiffFile -> [Chunk]
+getChunks (RiffFile _ cs) = cs
 
-chunkToFilename :: Chunk -> Maybe String
-chunkToFilename (DataChunk (Data "TRKF" d)) = Just . T.unpack . T.init . decodeUtf16LE $ d
-chunkToFilename (DataChunk (Data "info" d)) = Just . show $ d
-chunkToFilename (DataChunk (Data "prof" d)) = Just . show $ d
-chunkToFilename _ = Nothing
+parseFilename :: Chunk -> Maybe String
+parseFilename (DataChunk (Data "TRKF" d)) = Just . T.unpack . T.init . decodeUtf16LE $ d
+parseFilename _ = Nothing
 
 listFiles :: BL.ByteString -> String
-listFiles = show . mapMaybe chunkToFilename . getChunks . runGet parseRiffChunks
+listFiles = show . mapMaybe parseFilename . getChunks . runGet parseRiffFile

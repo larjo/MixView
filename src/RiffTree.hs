@@ -38,8 +38,8 @@ createRiff (List len format) = do
     trees <- createTrees len
     return $ Riff format trees
 
-evalRiff :: RiffChunks -> Riff
-evalRiff (RiffChunks list cs) = evalState (createRiff list) cs
+evalRiff :: RiffFile -> Riff
+evalRiff (RiffFile list cs) = evalState (createRiff list) cs
 
 indent :: Int -> String
 indent ind = '\n' : replicate (ind * 2) ' '
@@ -58,4 +58,4 @@ showRoot :: Riff -> String
 showRoot riff = "RIFF:" ++ showRiff 1 riff
 
 riffFromBinary :: BL.ByteString -> Riff
-riffFromBinary = evalRiff . runGet parseRiffChunks
+riffFromBinary = evalRiff . runGet parseRiffFile
