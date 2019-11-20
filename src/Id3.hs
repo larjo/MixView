@@ -3,7 +3,7 @@ module Id3
     ( listIds
     , listTags
     , listInfo
-    , Mp3Info ) where
+    , Mp3Info (title, artist)) where
 
 import Control.Monad
 import Control.Monad.Loops
@@ -38,7 +38,7 @@ decodeText encoding textBs =
         0 -> BE.decode BE.latin1 textBs
         x | x == 1 || x == 2 -> BE.decode BE.utf16 $ removeTerminator 2 textBs
         3 -> BE.decode BE.utf8 $ removeTerminator 1 textBs
-        _ -> ""
+        _ -> "<UNKNOWN ENCODING>"
 
 showText :: String -> B.ByteString -> Maybe String
 showText frameid bs =
@@ -46,7 +46,7 @@ showText frameid bs =
     then do
         (encoding, textBs) <- B.uncons bs
         return $ T.unpack $ decodeText encoding textBs
-    else Nothing
+    else return "<BINARY>"
 
 getFrame :: Get (Maybe Frame)
 getFrame = do
