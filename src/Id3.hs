@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Id3
-    ( id3
-    , listIds
+    ( listIds
     , listTags
-    , parseTitleArtist ) where
+    , listInfo
+    , Mp3Info ) where
 
 import Control.Monad
 import Control.Monad.Loops
@@ -98,8 +98,20 @@ parseTags tags = mapTags tags . foldl insertFrame M.empty . runGet parseId3
 parseTitleArtist :: BL.ByteString -> [String]
 parseTitleArtist = parseTags ["TIT2", "TPE1"]
 
-id3 :: BL.ByteString -> String
-id3 = show . parseTitleArtist
+data Mp3Info = Mp3Info
+    { title :: String
+    , artist :: String
+    }
+    deriving Show
+
+listInfo :: BL.ByteString -> Mp3Info
+listInfo bs =
+    Mp3Info { title = lookup "TIT2"
+            , artist = lookup "TPE1"
+            }
+    where
+        lookup = lookupFrame frameMap
+        frameMap = foldl insertFrame M.empty $ runGet parseId3 bs
 
 listTags :: BL.ByteString -> String
 listTags = show . map (\(Frame frameId tag) -> frameId ++ ":" ++ tag) . runGet parseId3

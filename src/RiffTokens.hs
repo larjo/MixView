@@ -144,5 +144,5 @@ parseFilename :: Chunk -> Maybe String
 parseFilename (DataChunk (Data "TRKF" d)) = Just . T.unpack . T.init . decodeUtf16LE $ d
 parseFilename _ = Nothing
 
-listFiles :: BL.ByteString -> String
-listFiles = show . mapMaybe parseFilename . getChunks . runGet parseRiffFile
+listFiles :: BL.ByteString -> [String]
+listFiles = mapMaybe parseFilename . getChunks . runGet parseRiffFile
