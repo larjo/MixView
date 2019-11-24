@@ -45,7 +45,7 @@ parse [command] = do
 parse [command, filePath] = do
     bs <- BL.readFile filePath
     execute command bs
-parse [command, n, filePath] = do
+parse ["playlist", n, filePath] = do
     bs <- BL.readFile filePath
     fmap (formatList . take (read n)) $ mapM readFiles $ listFiles bs
 

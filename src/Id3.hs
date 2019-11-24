@@ -89,15 +89,6 @@ insertFrame fm (Frame i str) = M.insert i str fm
 lookupFrame :: FrameMap -> String -> String
 lookupFrame fm k = M.findWithDefault "" k fm
 
-mapTags :: [String] -> FrameMap -> [String]
-mapTags tags fm = map (lookupFrame fm) tags
-
-parseTags :: [String] -> BL.ByteString -> [String]
-parseTags tags = mapTags tags . foldl insertFrame M.empty . runGet parseId3
-
-parseTitleArtist :: BL.ByteString -> [String]
-parseTitleArtist = parseTags ["TIT2", "TPE1"]
-
 data Mp3Info = Mp3Info
     { title :: String
     , artist :: String
@@ -106,11 +97,11 @@ data Mp3Info = Mp3Info
 
 listInfo :: BL.ByteString -> Mp3Info
 listInfo bs =
-    Mp3Info { title = lookup "TIT2"
-            , artist = lookup "TPE1"
+    Mp3Info { title = lookupTag "TIT2"
+            , artist = lookupTag "TPE1"
             }
     where
-        lookup = lookupFrame frameMap
+        lookupTag = lookupFrame frameMap
         frameMap = foldl insertFrame M.empty $ runGet parseId3 bs
 
 listTags :: BL.ByteString -> String
