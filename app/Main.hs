@@ -1,3 +1,5 @@
+module Main where
+
 import Control.Arrow
 import Data.List
 import Text.Printf
@@ -11,6 +13,10 @@ import RiffTokens
 
 frequency :: Ord a => [a] -> [(Int,a)] 
 frequency = map (length &&& head) . group . sort
+
+-- >>> frequency [ "a", "b", "a", "c", "c", "b", "d"]
+-- [(2,"a"),(2,"b"),(2,"c"),(1,"d")]
+--
 
 formatInfo :: Mp3Info -> String
 formatInfo info = (title info) ++ " - " ++ (artist info)
