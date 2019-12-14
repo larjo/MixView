@@ -1,9 +1,9 @@
 module RiffTree
-  ( Tree(Leaf, Node)
-  , Riff
-  , riffFromBinary
-  , showRoot
-  ) where
+    ( Tree(Leaf, Node)
+    , Riff
+    , riffFromBinary
+    , showRoot
+    ) where
 
 import           Control.Monad.State
 import           Data.Binary.Get
@@ -13,11 +13,11 @@ import           Data.List
 import           RiffTokens
 
 data Tree
-  = Leaf Data
-  | Node Riff
+    = Leaf Data
+    | Node Riff
 
 data Riff =
-  Riff Format [Tree]
+    Riff Format [Tree]
 
 type ChunkMonad = State [Chunk]
 
@@ -31,15 +31,15 @@ createTree (ListChunk list) = Node <$> createRiff list
 createTrees :: Int -> ChunkMonad [Tree]
 createTrees 0 = return []
 createTrees len = do
-  c <- getChunk
-  t <- createTree c
-  ts <- createTrees (len - chunkLength c)
-  return (t : ts)
+    c <- getChunk
+    t <- createTree c
+    ts <- createTrees (len - chunkLength c)
+    return (t : ts)
 
 createRiff :: List -> ChunkMonad Riff
 createRiff (List len format) = do
-  trees <- createTrees len
-  return $ Riff format trees
+    trees <- createTrees len
+    return $ Riff format trees
 
 evalRiff :: RiffFile -> Riff
 evalRiff (RiffFile list cs) = evalState (createRiff list) cs

@@ -48,28 +48,28 @@ execute _ _              = usage >> exit
 
 parse :: [String] -> IO String
 parse [command] = do
-  bs <- BL.getContents
-  execute command bs
+    bs <- BL.getContents
+    execute command bs
 parse [command, filePath] = do
-  bs <- BL.readFile filePath
-  execute command bs
+    bs <- BL.readFile filePath
+    execute command bs
 parse ["playlist", n, filePath] = do
-  bs <- BL.readFile filePath
-  fmap (formatList . take (read n)) $ mapM readFiles $ listFiles bs
+    bs <- BL.readFile filePath
+    fmap (formatList . take (read n)) $ mapM readFiles $ listFiles bs
 parse _ = usage >> exit
 
 usage :: IO ()
 usage = do
-  putStrLn "Usage: mixview command [file]"
-  putStrLn "command:"
-  putStrLn "id3"
-  putStrLn "id3-tags"
-  putStrLn "id3-ids"
-  putStrLn "riff-tree"
-  putStrLn "riff-files"
-  putStrLn "riff-tokens"
-  putStrLn "playlist"
-  putStrLn "playlist n"
+    putStrLn "Usage: mixview command [file]"
+    putStrLn "command:"
+    putStrLn "id3"
+    putStrLn "id3-tags"
+    putStrLn "id3-ids"
+    putStrLn "riff-tree"
+    putStrLn "riff-files"
+    putStrLn "riff-tokens"
+    putStrLn "playlist"
+    putStrLn "playlist n"
 
 exit :: IO a
 exit = exitSuccess
