@@ -1,5 +1,3 @@
-module Main where
-
 import           Control.Arrow
 import qualified Data.ByteString.Lazy as BL
 import           Data.List
