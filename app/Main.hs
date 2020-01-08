@@ -31,14 +31,14 @@ formatList = intercalate "\n" . zipWith formatIndex [1 ..]
 -- [2,6,12,20,30,42,56,72,90,110]
 --
 duplicates :: [String] -> String
-duplicates = intercalate "\n" . map snd . filter ((> 1) . fst) . frequency
+duplicates = unlines . map snd . filter ((> 1) . fst) . frequency
 
 execute :: String -> BL.ByteString -> IO String
 execute "id3" bs         = return $ show $ listInfo bs
-execute "id3-tags" bs    = return $ listTags bs
-execute "id3-ids" bs     = return $ listIds bs
+execute "id3-tags" bs    = return $ unlines $ listTags bs
+execute "id3-ids" bs     = return $ unlines $ listIds bs
 execute "riff-tree" bs   = return $ showRoot $ riffFromBinary bs
-execute "riff-files" bs  = return $ show $ listFiles bs
+execute "riff-files" bs  = return $ unlines $ listFiles bs
 execute "riff-tokens" bs = return $ listTokens bs
 execute "playlist" bs    = fmap formatList $ mapM readFiles $ listFiles bs
 execute "duplicates" bs  = fmap duplicates $ mapM readFiles $ listFiles bs

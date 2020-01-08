@@ -107,9 +107,14 @@ listInfo bs = Mp3Info {title = lookupTag "TIT2", artist = lookupTag "TPE1"}
     lookupTag = lookupFrame frameMap
     frameMap = foldl insertFrame M.empty $ runGet parseId3 bs
 
-listTags :: BL.ByteString -> String
-listTags =
-    show . map (\(Frame frameId tag) -> frameId ++ ":" ++ tag) . runGet parseId3
+padRight :: a -> Int -> [a] -> [a]
+padRight p s l = take s $ l ++ repeat p
 
-listIds :: BL.ByteString -> String
-listIds = show . map (\(Frame frameId _tag) -> frameId) . runGet parseId3
+formatId :: String -> String
+formatId = padRight ' ' 4
+
+listTags :: BL.ByteString -> [ String ]
+listTags = map (\(Frame frameId tag) -> formatId frameId ++ " " ++ tag) . runGet parseId3
+
+listIds :: BL.ByteString -> [ String ]
+listIds = map (\(Frame frameId _tag) -> formatId frameId) . runGet parseId3
