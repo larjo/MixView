@@ -1,3 +1,5 @@
 .stack-work/
 mixview.cabal
 *~
+*.o
+*.hi
