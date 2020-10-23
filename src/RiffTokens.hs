@@ -1,29 +1,38 @@
 module RiffTokens
-    ( Chunk(DataChunk, ListChunk)
-    , Data(Data, dataId, dataRaw)
-    , Format
-    , Id
-    , Len
-    , List(List, listLength, listFormat)
-    , Raw
-    , RiffFile(RiffFile)
-    , chunkLength
-    , dataChunkLength
-    , listChunkLength
-    , listFiles
-    , listTokens
-    , parseRiffFile
-    ) where
+  ( Chunk (DataChunk, ListChunk),
+    Data (Data, dataId, dataRaw),
+    Format,
+    Id,
+    Len,
+    List (List, listLength, listFormat),
+    Raw,
+    RiffFile (RiffFile),
+    chunkLength,
+    dataChunkLength,
+    listChunkLength,
+    listFiles,
+    listTokens,
+    parseRiffFile,
+  )
+where
 
-import           Control.Monad.Loops
-import           Data.Binary.Get
-import qualified Data.ByteString       as B
-import           Data.ByteString.Char8
-import qualified Data.ByteString.Lazy  as BL
-import qualified Data.List             as DL
-import           Data.Maybe
-import qualified Data.Text             as T
-import           Data.Text.Encoding
+import Control.Monad.Loops (whileM)
+import Data.Binary.Get
+  ( Get,
+    getByteString,
+    getWord32le,
+    isEmpty,
+    lookAhead,
+    runGet,
+    skip,
+  )
+import qualified Data.ByteString as B
+import Data.ByteString.Char8 (ByteString, unpack)
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.List as DL
+import Data.Maybe (mapMaybe)
+import qualified Data.Text as T
+import Data.Text.Encoding (decodeUtf16LE)
 
 type Id = String
 
@@ -33,39 +42,37 @@ type Format = String
 
 type Raw = ByteString
 
-data Data =
-    Data
-        { dataId  :: Id
-        , dataRaw :: Raw
-        }
+data Data = Data
+  { dataId :: Id,
+    dataRaw :: Raw
+  }
 
-data List =
-    List
-        { listLength :: Len
-        , listFormat :: Format
-        }
+data List = List
+  { listLength :: Len,
+    listFormat :: Format
+  }
 
 data Chunk
-    = DataChunk Data
-    | ListChunk List
+  = DataChunk Data
+  | ListChunk List
 
-data RiffFile =
-    RiffFile List [Chunk] -- RiffFile = List(Data|List)*
+data RiffFile
+  = RiffFile List [Chunk] -- RiffFile = List(Data|List)*
 
 formatChunk :: [String] -> String
 formatChunk = DL.intercalate ":"
 
 instance Show Data where
-    show x = formatChunk [show $ dataChunkLength x, dataId x]
+  show x = formatChunk [show $ dataChunkLength x, dataId x]
 
 instance Show List where
-    show x =
-        formatChunk
-            [show $ listChunkLength x, listFormat x, show $ listLength x]
+  show x =
+    formatChunk
+      [show $ listChunkLength x, listFormat x, show $ listLength x]
 
 instance Show Chunk where
-    show (DataChunk x) = show x
-    show (ListChunk x) = show x
+  show (DataChunk x) = show x
+  show (ListChunk x) = show x
 
 -- parse binary
 skipFourCC :: Get ()
@@ -85,33 +92,33 @@ skipIfOdd = skip . (`mod` 2)
 
 parseByteString :: Int -> Get ByteString
 parseByteString len = do
-    bs <- getByteString len
-    skipIfOdd len
-    return bs
+  bs <- getByteString len
+  skipIfOdd len
+  return bs
 
 -- parse Data
 parseData :: Get Data
 parseData = do
-    fourCC <- parseFourCC
-    len <- parseInt
-    rawData <- parseByteString len
-    return $ Data fourCC rawData
+  fourCC <- parseFourCC
+  len <- parseInt
+  rawData <- parseByteString len
+  return $ Data fourCC rawData
 
 -- parse List
 parseList :: Get List
 parseList = do
-    skipFourCC
-    len <- parseInt
-    List (adjustListLength len) <$> parseFourCC
+  skipFourCC
+  len <- parseInt
+  List (adjustListLength len) <$> parseFourCC
 
 -- parse Chunk
 parseChunk :: Get Chunk
 parseChunk = do
-    fourCC <- lookAhead parseFourCC
-    go fourCC
+  fourCC <- lookAhead parseFourCC
+  go fourCC
   where
     go "LIST" = ListChunk <$> parseList
-    go _      = DataChunk <$> parseData
+    go _ = DataChunk <$> parseData
 
 -- parse Chunks
 parseChunks :: Get [Chunk]
@@ -144,7 +151,7 @@ getChunks (RiffFile _ cs) = cs
 
 parseFilename :: Chunk -> Maybe String
 parseFilename (DataChunk (Data "TRKF" d)) =
-    Just . T.unpack . T.init . decodeUtf16LE $ d
+  Just . T.unpack . T.init . decodeUtf16LE $ d
 parseFilename _ = Nothing
 
 listFiles :: BL.ByteString -> [String]
