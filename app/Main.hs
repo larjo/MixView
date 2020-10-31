@@ -23,22 +23,23 @@ readFiles = mapM (fmap (formatInfo . listInfo) . BL.readFile)
 formatIndex :: Int -> String -> String
 formatIndex i s = printf "%2i" i ++ ". " ++ s
 
+-- >>> formatIndex 3 "test"
+-- " 3. test"
+
 formatList :: [String] -> String
 formatList = unlines . zipWith formatIndex [1 ..]
 
--- >>> take 10 $ zipWith (*) [1 ..] [2 ..] :: [ Int ]
--- [2,6,12,20,30,42,56,72,90,110]
+-- >>> formatList [ "aaa", "bbb" ]
+-- " 1. aaa\n 2. bbb\n"
 
 frequency :: Ord a => [a] -> [(Int, a)]
 frequency = map (length &&& head) . group . sort
 
 -- >>> group . sort $ [1, 5, 4, 5, 3, 2, 1, 1, 4]
 -- [[1,1,1],[2],[3],[4,4],[5,5]]
+
 -- >>> frequency [1, 5, 4, 5, 3, 2, 1, 1, 4]
 -- [(3,1),(1,2),(1,3),(2,4),(2,5)]
-
-duplicates :: [String] -> [String]
-duplicates = map snd . filter ((> 1) . fst) . frequency
 
 select :: (Int, b) -> Maybe b
 select (count, a)
@@ -51,11 +52,8 @@ select (count, a)
 -- >>> select (1, "c")
 -- Nothing
 
-dup :: [String] -> [String]
-dup = mapMaybe select . frequency
-
--- >>> dup["a", "b", "a", "a", "b", "a", "c", "c", "b", "d"]
--- ["a","b","c"]
+duplicates :: [String] -> [String]
+duplicates = mapMaybe select . frequency
 
 -- >>> duplicates ["a", "b", "a", "a", "b", "a", "c", "c", "b", "d"]
 -- ["a","b","c"]
