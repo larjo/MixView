@@ -6,11 +6,18 @@ module RiffTree
   )
 where
 
-import Control.Monad.State
-import Data.Binary.Get
+import Control.Monad.State ( State, evalState, MonadState(state) )
+import Data.Binary.Get ( runGet )
 import qualified Data.ByteString.Lazy as BL
-import Data.List
+import Data.List ( intercalate )
 import RiffTokens
+    ( chunkLength,
+      parseRiffFile,
+      Chunk(..),
+      Data,
+      Format,
+      List(List),
+      RiffFile(..) )
 
 data Tree
   = Leaf Data

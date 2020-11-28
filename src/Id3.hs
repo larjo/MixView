@@ -8,17 +8,25 @@ module Id3
   )
 where
 
-import Control.Monad
-import Control.Monad.Loops
+import Control.Monad ( replicateM )
+import Control.Monad.Loops ( whileM )
 import Data.Binary.Get
+    ( Get,
+      getWord32be,
+      getWord8,
+      runGet,
+      skip,
+      bytesRead,
+      getByteString,
+      lookAhead )
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Encoding as BE
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as M
-import Data.Maybe
+import Data.Maybe ( catMaybes )
 import qualified Data.Text as T
-import Data.Word
+import Data.Word ( Word8 )
 
 data Frame
   = Frame String String
@@ -33,6 +41,9 @@ getVersion = do
   v1 <- show <$> getWord8
   v2 <- show <$> getWord8
   return $ "2." ++ v1 ++ "." ++ v2
+
+-- >>> runGet getVersion (BL.pack [13, 27])
+-- "2.13.27"
 
 removeTerminator :: Int -> B.ByteString -> B.ByteString
 removeTerminator n = B.reverse . B.drop n . B.reverse

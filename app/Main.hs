@@ -1,15 +1,15 @@
 module Main where
 
-import Control.Arrow
+import Control.Arrow ( Arrow((&&&)) )
 import qualified Data.ByteString.Lazy as BL
-import Data.List
-import Data.Maybe
-import Id3
-import RiffTokens
-import RiffTree
-import System.Environment
-import System.Exit
-import Text.Printf
+import Data.List ( group, sort )
+import Data.Maybe ( mapMaybe )
+import Id3 ( Mp3Info(..), listInfo, listTags, listIds )
+import RiffTokens ( listFiles, listTokens )
+import RiffTree ( riffFromBinary, showRoot )
+import System.Environment ( getArgs )
+import System.Exit ( exitSuccess )
+import Text.Printf ( printf )
 
 -- >>> frequency [ "a", "b", "a", "a", "b", "a", "c", "c", "b", "d"]
 -- [(4,"a"),(3,"b"),(2,"c"),(1,"d")]
@@ -25,6 +25,8 @@ formatIndex i s = printf "%2i" i ++ ". " ++ s
 
 -- >>> formatIndex 3 "test"
 -- " 3. test"
+-- >>> formatIndex 13 "test"
+-- "13. test"
 
 formatList :: [String] -> String
 formatList = unlines . zipWith formatIndex [1 ..]
