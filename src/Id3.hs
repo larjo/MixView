@@ -8,25 +8,26 @@ module Id3
   )
 where
 
-import Control.Monad ( replicateM )
-import Control.Monad.Loops ( whileM )
+import Control.Monad (replicateM)
+import Control.Monad.Loops (whileM)
 import Data.Binary.Get
-    ( Get,
-      getWord32be,
-      getWord8,
-      runGet,
-      skip,
-      bytesRead,
-      getByteString,
-      lookAhead )
+  ( Get,
+    bytesRead,
+    getByteString,
+    getWord32be,
+    getWord8,
+    lookAhead,
+    runGet,
+    skip,
+  )
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Encoding as BE
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Map as M
-import Data.Maybe ( catMaybes )
+import Data.Maybe (catMaybes)
 import qualified Data.Text as T
-import Data.Word ( Word8 )
+import Data.Word (Word8)
 
 data Frame
   = Frame String String

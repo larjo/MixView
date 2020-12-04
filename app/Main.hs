@@ -1,15 +1,15 @@
 module Main where
 
-import Control.Arrow ( Arrow((&&&)) )
+import Control.Arrow (Arrow ((&&&)))
 import qualified Data.ByteString.Lazy as BL
-import Data.List ( group, sort )
-import Data.Maybe ( mapMaybe )
-import Id3 ( Mp3Info(..), listInfo, listTags, listIds )
-import RiffTokens ( listFiles, listTokens )
-import RiffTree ( riffFromBinary, showRoot )
-import System.Environment ( getArgs )
-import System.Exit ( exitSuccess )
-import Text.Printf ( printf )
+import Data.List (group, sort)
+import Data.Maybe (mapMaybe)
+import Id3 (Mp3Info (..), listIds, listInfo, listTags)
+import RiffTokens (listFiles, listTokens)
+import RiffTree (riffFromBinary, showRoot)
+import System.Environment (getArgs)
+import System.Exit (exitSuccess)
+import Text.Printf (printf)
 
 -- >>> frequency [ "a", "b", "a", "a", "b", "a", "c", "c", "b", "d"]
 -- [(4,"a"),(3,"b"),(2,"c"),(1,"d")]
