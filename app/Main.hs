@@ -21,7 +21,7 @@ readFiles :: [String] -> IO [String]
 readFiles = mapM (fmap (formatInfo . listInfo) . BL.readFile)
 
 formatIndex :: Int -> String -> String
-formatIndex i s = printf "%2i" i ++ ". " ++ s
+formatIndex = printf "%2i. %s"
 
 -- >>> formatIndex 3 "test"
 -- " 3. test"
