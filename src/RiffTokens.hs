@@ -141,7 +141,7 @@ chunkLength (DataChunk d) = dataChunkLength d
 chunkLength (ListChunk l) = listChunkLength l
 
 showRiff :: RiffFile -> String
-showRiff (RiffFile l cs) = (show l) ++ ":::" ++ (show cs)
+showRiff (RiffFile l cs) = show l ++ ":::" ++ show cs
 
 listTokens :: BL.ByteString -> String
 listTokens = showRiff . runGet parseRiffFile
