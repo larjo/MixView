@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists #-}
 
 module Id3
   ( listIds,
@@ -37,6 +38,9 @@ type FrameMap = M.Map String String
 getHeader :: Get String
 getHeader = B8.unpack <$> getByteString 3
 
+-- >>> runGet getHeader (BL.pack [51, 48, 50])
+-- "302"
+
 getVersion :: Get String
 getVersion = do
   v1 <- show <$> getWord8
@@ -49,6 +53,9 @@ getVersion = do
 removeTerminator :: Int -> B.ByteString -> B.ByteString
 removeTerminator n = B.reverse . B.drop n . B.reverse
 
+-- >>> removeTerminator 3 "abcdef"
+-- "abc"
+
 decodeText :: Word8 -> B.ByteString -> T.Text
 decodeText encoding textBs =
   case encoding of
@@ -57,6 +64,9 @@ decodeText encoding textBs =
       | x == 1 || x == 2 -> BE.decode BE.utf16 $ removeTerminator 2 textBs
     3 -> BE.decode BE.utf8 $ removeTerminator 1 textBs
     _ -> "<UNKNOWN ENCODING>"
+
+-- >>> decodeText 0 "teståäö"
+-- "test\229\228\246"
 
 showText :: String -> B.ByteString -> Maybe String
 showText frameid bs =
@@ -121,6 +131,9 @@ listInfo bs = Mp3Info {title = lookupTag "TIT2", artist = lookupTag "TPE1"}
 
 padRight :: a -> Int -> [a] -> [a]
 padRight p s l = take s $ l ++ repeat p
+
+-- >>> padRight '.' 10 "Test"
+-- "Test......"
 
 formatId :: String -> String
 formatId = padRight ' ' 4
