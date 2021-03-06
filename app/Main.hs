@@ -10,6 +10,7 @@ import RiffTree (riffFromBinary, showRoot)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import Text.Printf (printf)
+import Data.Functor ((<&>))
 
 -- >>> frequency [ "a", "b", "a", "a", "b", "a", "c", "c", "b", "d"]
 -- [(4,"a"),(3,"b"),(2,"c"),(1,"d")]
@@ -43,33 +44,34 @@ frequency = map (length &&& head) . group . sort
 -- >>> frequency [1, 5, 4, 5, 3, 2, 1, 1, 4]
 -- [(3,1),(1,2),(1,3),(2,4),(2,5)]
 
-select :: (Int, b) -> Maybe b
-select (count, a)
+keepDuplicate :: (Int, b) -> Maybe b
+keepDuplicate (count, a)
   | count > 1 = Just a
   | otherwise = Nothing
 
--- >>> select (3, "b")
+-- >>> keepDuplicate (3, "b")
 -- Just "b"
 
--- >>> select (1, "c")
+-- >>> keepDuplicate (1, "c")
 -- Nothing
 
 duplicates :: [String] -> [String]
-duplicates = mapMaybe select . frequency
+duplicates = mapMaybe keepDuplicate . frequency
 
 -- >>> duplicates ["a", "b", "a", "a", "b", "a", "c", "c", "b", "d"]
 -- ["a","b","c"]
 
 execute :: String -> BL.ByteString -> IO String
-execute "id3" bs = return $ show $ listInfo bs
-execute "id3-tags" bs = return $ unlines $ listTags bs
-execute "id3-ids" bs = return $ unlines $ listIds bs
-execute "riff-tree" bs = return $ showRoot $ riffFromBinary bs
-execute "riff-files" bs = return $ unlines $ listFiles bs
-execute "riff-tokens" bs = return $ listTokens bs
-execute "playlist" bs = formatList <$> readFiles (listFiles bs)
-execute "duplicates" bs = unlines . duplicates <$> readFiles (listFiles bs)
-execute _ _ = usage >> exit
+execute "id3" = return . show . listInfo 
+execute "id3-tags" = return . unlines . listTags 
+execute "id3-ids" = return . unlines . listIds 
+execute "riff-tree" = return . showRoot . riffFromBinary 
+execute "riff-files" = return . unlines . listFiles 
+execute "riff-tokens" = return . listTokens 
+execute "playlist" = fmap formatList . readFiles . listFiles  
+execute "duplicates" = return . unlines . duplicates . listFiles
+execute _ = const $ usage >> exit
+
 
 parse :: [String] -> IO String
 parse [command] = do
