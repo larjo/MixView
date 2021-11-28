@@ -61,16 +61,15 @@ duplicates = mapMaybe keepDuplicate . frequency
 -- ["a","b","c"]
 
 execute :: String -> BL.ByteString -> IO String
-execute "id3" = return . show . listInfo 
-execute "id3-tags" = return . unlines . listTags 
-execute "id3-ids" = return . unlines . listIds 
-execute "riff-tree" = return . showRoot . riffFromBinary 
-execute "riff-files" = return . unlines . listFiles 
-execute "riff-tokens" = return . listTokens 
-execute "playlist" = fmap formatList . readFiles . listFiles  
+execute "id3" = return . show . listInfo
+execute "id3-tags" = return . unlines . listTags
+execute "id3-ids" = return . unlines . listIds
+execute "riff-tree" = return . showRoot . riffFromBinary
+execute "riff-files" = return . unlines . listFiles
+execute "riff-tokens" = return . listTokens
+execute "playlist" = fmap formatList . readFiles . listFiles
 execute "duplicates" = return . unlines . duplicates . listFiles
 execute _ = const $ usage >> exit
-
 
 parse :: [String] -> IO String
 parse [command] = do
