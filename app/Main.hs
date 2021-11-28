@@ -10,7 +10,6 @@ import RiffTree (riffFromBinary, showRoot)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess)
 import Text.Printf (printf)
-import Data.Functor ((<&>))
 
 -- >>> frequency [ "a", "b", "a", "a", "b", "a", "c", "c", "b", "d"]
 -- [(4,"a"),(3,"b"),(2,"c"),(1,"d")]
