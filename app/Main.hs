@@ -4,7 +4,7 @@ import Control.Arrow (Arrow ((&&&)))
 import qualified Data.ByteString.Lazy as BL
 import Data.List (group, sort)
 import Data.Maybe (mapMaybe)
-import Id3 (Mp3Info (..), listIds, listInfo, listTags)
+import Id3 (formatInfo, listIds, listInfo, listTags)
 import RiffTokens (listFiles, listTokens)
 import RiffTree (riffFromBinary, showRoot)
 import System.Environment (getArgs)
@@ -14,9 +14,6 @@ import Text.Printf (printf)
 -- >>> frequency [ "a", "b", "a", "a", "b", "a", "c", "c", "b", "d"]
 -- [(4,"a"),(3,"b"),(2,"c"),(1,"d")]
 
-formatInfo :: Mp3Info -> String
-formatInfo info = title info ++ " - " ++ artist info
-
 readFiles :: [String] -> IO [String]
 readFiles = mapM (fmap (formatInfo . listInfo) . BL.readFile)
 
@@ -24,9 +21,11 @@ formatIndex :: Int -> String -> String
 formatIndex = printf "%2i. %s"
 
 -- >>> formatIndex 3 "test"
--- " 3. test"
 -- >>> formatIndex 13 "test"
+-- >>> formatIndex 113 "test"
+-- " 3. test"
 -- "13. test"
+-- "113. test"
 
 formatList :: [String] -> String
 formatList = unlines . zipWith formatIndex [1 ..]

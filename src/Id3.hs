@@ -5,7 +5,7 @@ module Id3
   ( listIds,
     listTags,
     listInfo,
-    Mp3Info (title, artist),
+    formatInfo,
   )
 where
 
@@ -122,6 +122,14 @@ data Mp3Info = Mp3Info
     artist :: String
   }
   deriving (Show)
+
+formatInfo :: Mp3Info -> String
+formatInfo info = title info ++ " - " ++ artist info
+
+-- >>> Mp3Info "titel" "artisten"
+-- >>> formatInfo $ Mp3Info "titel" "artisten"
+-- Mp3Info {title = "titel", artist = "artisten"}
+-- "titel - artisten"
 
 listInfo :: BL.ByteString -> Mp3Info
 listInfo bs = Mp3Info {title = lookupTag "TIT2", artist = lookupTag "TPE1"}
